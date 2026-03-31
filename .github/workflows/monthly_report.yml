@@ -1,0 +1,139 @@
+name: Reporte Mensual Rendimiento Vehicular
+
+on:
+  # Ejecución automática: día 2 de cada mes a las 9:00 AM Chile (UTC-3 en verano, UTC-4 en invierno)
+  schedule:
+    - cron: '0 13 2 * *'  # 13:00 UTC = ~09:00-10:00 Chile
+
+  # Ejecución manual desde GitHub
+  workflow_dispatch:
+    inputs:
+      skip_copec:
+        description: 'Saltar descarga de Copec (usar archivo ya existente en data/)'
+        required: false
+        default: 'false'
+        type: boolean
+      skip_email:
+        description: 'Saltar recuperación de email (usar archivo ya existente en data/)'
+        required: false
+        default: 'false'
+        type: boolean
+
+# Permisos para GitHub Pages
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  generate-report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      # 1. Checkout del repositorio
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # 2. Configurar Python
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      # 3. Instalar dependencias
+      - name: Instalar dependencias
+        run: |
+          pip install -r requirements.txt
+          playwright install chromium
+          playwright install-deps chromium
+
+      # 4. Solicitar descarga desde Copec
+      - name: Solicitar descarga en Copec
+        if: ${{ github.event.inputs.skip_copec != 'true' }}
+        env:
+          COPEC_RUT: ${{ secrets.COPEC_RUT }}
+          COPEC_PASSWORD: ${{ secrets.COPEC_PASSWORD }}
+          REPORT_EMAIL: ${{ secrets.REPORT_EMAIL }}
+        run: python scripts/copec_download.py
+
+      # 5. Esperar que llegue el correo (5 minutos)
+      - name: Esperar envio de correo
+        if: ${{ github.event.inputs.skip_copec != 'true' }}
+        run: |
+          echo "Esperando 5 minutos para que Copec envie el correo..."
+          sleep 300
+
+      # 6. Recuperar archivo del correo
+      - name: Recuperar archivo de email
+        if: ${{ github.event.inputs.skip_email != 'true' }}
+        env:
+          IMAP_SERVER: ${{ secrets.IMAP_SERVER }}
+          IMAP_PORT: ${{ secrets.IMAP_PORT }}
+          EMAIL_USER: ${{ secrets.EMAIL_USER }}
+          EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
+          OUTPUT_DIR: data
+        run: python scripts/fetch_email.py
+
+      # 7. Procesar datos del Excel
+      - name: Procesar datos
+        env:
+          DATA_DIR: data
+          OUTPUT_DIR: data
+        run: python scripts/process_data.py
+
+      # 8. Generar reporte HTML
+      - name: Generar reporte HTML
+        env:
+          DATA_DIR: data
+          OUTPUT_DIR: docs
+        run: python scripts/generate_report.py
+
+      # 9. Commit y push del reporte generado
+      - name: Commit reporte
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add docs/ data/report_data.json
+          git diff --staged --quiet || git commit -m "Actualizar reporte rendimiento vehicular - $(date '+%Y-%m-%d')"
+          git push
+
+      # 10. Subir artefacto del reporte
+      - name: Upload report artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: reporte-vehicular
+          path: |
+            docs/index.html
+            data/report_data.json
+
+  # Deploy a GitHub Pages
+  deploy-pages:
+    needs: generate-report
+    runs-on: ubuntu-latest
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: main  # Asegurar que toma el último commit
+
+      - name: Pull latest changes
+        run: git pull origin main
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

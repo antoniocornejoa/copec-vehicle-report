@@ -1,0 +1,614 @@
+{
+  "metadata": {
+    "generado": "2026-03-31T15:20:00",
+    "archivo_fuente": "transacciones_marzo_2026.xlsx",
+    "total_registros": 149
+  },
+  "summary": {
+    "periodo": "Marzo 2026",
+    "fecha_generacion": "31/03/2026 15:20",
+    "total_vehiculos": 15,
+    "total_cargas": 149,
+    "total_litros": 7837.44,
+    "total_monto": 7987462.0,
+    "promedio_litros_vehiculo": 522.5,
+    "promedio_monto_vehiculo": 532497.0
+  },
+  "vehicles": {
+    "GGKL-45": {
+      "patente": "GGKL-45",
+      "departamento": "CASA MATRIZ",
+      "conductor": "Juan Perez",
+      "total_litros": 497.93,
+      "total_monto": 509958.0,
+      "num_cargas": 14,
+      "promedio_litros_carga": 35.57,
+      "promedio_monto_carga": 36426.0,
+      "km_recorridos": 1714,
+      "rendimiento_km_litro": 3.44,
+      "estaciones_frecuentes": {
+        "COPEC Ruta 5 Sur km245": 7
+      }
+    },
+    "HRTW-12": {
+      "patente": "HRTW-12",
+      "departamento": "OBRA TALCA SUR",
+      "conductor": "Carlos Munoz",
+      "total_litros": 319.17,
+      "total_monto": 331687.0,
+      "num_cargas": 5,
+      "promedio_litros_carga": 63.83,
+      "promedio_monto_carga": 66337.0,
+      "km_recorridos": 3218,
+      "rendimiento_km_litro": 10.08,
+      "estaciones_frecuentes": {
+        "COPEC Constitucion": 2
+      }
+    },
+    "JKPS-78": {
+      "patente": "JKPS-78",
+      "departamento": "OBRA CONSTITUCION",
+      "conductor": "Pedro Gonzalez",
+      "total_litros": 138.74,
+      "total_monto": 135031.0,
+      "num_cargas": 4,
+      "promedio_litros_carga": 34.69,
+      "promedio_monto_carga": 33758.0,
+      "km_recorridos": 908,
+      "rendimiento_km_litro": 6.54,
+      "estaciones_frecuentes": {
+        "COPEC San Clemente": 3
+      }
+    },
+    "LMDN-33": {
+      "patente": "LMDN-33",
+      "departamento": "OBRA LINARES",
+      "conductor": "Luis Rodriguez",
+      "total_litros": 937.41,
+      "total_monto": 941623.0,
+      "num_cargas": 15,
+      "promedio_litros_carga": 62.49,
+      "promedio_monto_carga": 62775.0,
+      "km_recorridos": 2639,
+      "rendimiento_km_litro": 2.82,
+      "estaciones_frecuentes": {
+        "COPEC San Clemente": 4
+      }
+    },
+    "BCTF-91": {
+      "patente": "BCTF-91",
+      "departamento": "CASA MATRIZ",
+      "conductor": "Miguel Soto",
+      "total_litros": 1175.44,
+      "total_monto": 1205861.0,
+      "num_cargas": 16,
+      "promedio_litros_carga": 73.47,
+      "promedio_monto_carga": 75366.0,
+      "km_recorridos": 3659,
+      "rendimiento_km_litro": 3.11,
+      "estaciones_frecuentes": {
+        "COPEC Constitucion": 4
+      }
+    },
+    "WPRT-56": {
+      "patente": "WPRT-56",
+      "departamento": "OBRA TALCA SUR",
+      "conductor": "Andres Silva",
+      "total_litros": 302.19,
+      "total_monto": 316007.0,
+      "num_cargas": 8,
+      "promedio_litros_carga": 37.77,
+      "promedio_monto_carga": 39501.0,
+      "km_recorridos": 1218,
+      "rendimiento_km_litro": 4.03,
+      "estaciones_frecuentes": {
+        "COPEC Talca Centro": 5
+      }
+    },
+    "XKVL-23": {
+      "patente": "XKVL-23",
+      "departamento": "OBRA CONSTITUCION",
+      "conductor": "Felipe Diaz",
+      "total_litros": 239.74,
+      "total_monto": 235999.0,
+      "num_cargas": 5,
+      "promedio_litros_carga": 47.95,
+      "promedio_monto_carga": 47200.0,
+      "km_recorridos": 977,
+      "rendimiento_km_litro": 4.08,
+      "estaciones_frecuentes": {
+        "COPEC Maule": 5
+      }
+    },
+    "DFMN-67": {
+      "patente": "DFMN-67",
+      "departamento": "OBRA LINARES",
+      "conductor": "Roberto Fuentes",
+      "total_litros": 434.9,
+      "total_monto": 453266.0,
+      "num_cargas": 12,
+      "promedio_litros_carga": 36.24,
+      "promedio_monto_carga": 37772.0,
+      "km_recorridos": 3061,
+      "rendimiento_km_litro": 7.04,
+      "estaciones_frecuentes": {
+        "COPEC Linares": 8
+      }
+    },
+    "RQST-44": {
+      "patente": "RQST-44",
+      "departamento": "CASA MATRIZ",
+      "conductor": "Pablo Rojas",
+      "total_litros": 852.96,
+      "total_monto": 883812.0,
+      "num_cargas": 14,
+      "promedio_litros_carga": 60.93,
+      "promedio_monto_carga": 63129.0,
+      "km_recorridos": 1587,
+      "rendimiento_km_litro": 1.86,
+      "estaciones_frecuentes": {
+        "COPEC Maule": 2
+      }
+    },
+    "YCLP-88": {
+      "patente": "YCLP-88",
+      "departamento": "OBRA TALCA SUR",
+      "conductor": "Diego Morales",
+      "total_litros": 252.25,
+      "total_monto": 259138.0,
+      "num_cargas": 4,
+      "promedio_litros_carga": 63.06,
+      "promedio_monto_carga": 64784.0,
+      "km_recorridos": 1753,
+      "rendimiento_km_litro": 6.95,
+      "estaciones_frecuentes": {
+        "COPEC Talca Centro": 5
+      }
+    },
+    "HNVW-15": {
+      "patente": "HNVW-15",
+      "departamento": "OBRA CONSTITUCION",
+      "conductor": "Sergio Vargas",
+      "total_litros": 421.36,
+      "total_monto": 435438.0,
+      "num_cargas": 8,
+      "promedio_litros_carga": 52.67,
+      "promedio_monto_carga": 54430.0,
+      "km_recorridos": 2316,
+      "rendimiento_km_litro": 5.5,
+      "estaciones_frecuentes": {
+        "COPEC Linares": 3
+      }
+    },
+    "TMGK-72": {
+      "patente": "TMGK-72",
+      "departamento": "OBRA LINARES",
+      "conductor": "Raul Contreras",
+      "total_litros": 606.88,
+      "total_monto": 633380.0,
+      "num_cargas": 14,
+      "promedio_litros_carga": 43.35,
+      "promedio_monto_carga": 45241.0,
+      "km_recorridos": 1092,
+      "rendimiento_km_litro": 1.8,
+      "estaciones_frecuentes": {
+        "COPEC San Clemente": 7
+      }
+    },
+    "PSDF-39": {
+      "patente": "PSDF-39",
+      "departamento": "CASA MATRIZ",
+      "conductor": "Hugo Espinoza",
+      "total_litros": 340.24,
+      "total_monto": 331557.0,
+      "num_cargas": 6,
+      "promedio_litros_carga": 56.71,
+      "promedio_monto_carga": 55260.0,
+      "km_recorridos": 2354,
+      "rendimiento_km_litro": 6.92,
+      "estaciones_frecuentes": {
+        "COPEC Linares": 7
+      }
+    },
+    "VLKJ-61": {
+      "patente": "VLKJ-61",
+      "departamento": "OBRA TALCA SUR",
+      "conductor": "Oscar Tapia",
+      "total_litros": 867.71,
+      "total_monto": 883729.0,
+      "num_cargas": 15,
+      "promedio_litros_carga": 57.85,
+      "promedio_monto_carga": 58915.0,
+      "km_recorridos": 1738,
+      "rendimiento_km_litro": 2.0,
+      "estaciones_frecuentes": {
+        "COPEC Talca Centro": 8
+      }
+    },
+    "ZCXW-27": {
+      "patente": "ZCXW-27",
+      "departamento": "OBRA CONSTITUCION",
+      "conductor": "Mario Campos",
+      "total_litros": 450.52,
+      "total_monto": 430976.0,
+      "num_cargas": 9,
+      "promedio_litros_carga": 50.06,
+      "promedio_monto_carga": 47886.0,
+      "km_recorridos": 3740,
+      "rendimiento_km_litro": 8.3,
+      "estaciones_frecuentes": {
+        "COPEC Linares": 3
+      }
+    }
+  },
+  "departments": [
+    {
+      "departamento": "CASA MATRIZ",
+      "total_litros": 2866.57,
+      "total_monto": 2931188.0,
+      "num_vehiculos": 4,
+      "num_cargas": 50
+    },
+    {
+      "departamento": "OBRA LINARES",
+      "total_litros": 1979.19,
+      "total_monto": 2028269.0,
+      "num_vehiculos": 3,
+      "num_cargas": 41
+    },
+    {
+      "departamento": "OBRA TALCA SUR",
+      "total_litros": 1741.32,
+      "total_monto": 1790561.0,
+      "num_vehiculos": 4,
+      "num_cargas": 32
+    },
+    {
+      "departamento": "OBRA CONSTITUCION",
+      "total_litros": 1250.36,
+      "total_monto": 1237444.0,
+      "num_vehiculos": 4,
+      "num_cargas": 26
+    }
+  ],
+  "daily_trend": [
+    {
+      "fecha": "2026-03-01",
+      "litros": 427.72,
+      "monto": 297816.0,
+      "cargas": 12
+    },
+    {
+      "fecha": "2026-03-02",
+      "litros": 329.43,
+      "monto": 232440.0,
+      "cargas": 5
+    },
+    {
+      "fecha": "2026-03-03",
+      "litros": 472.49,
+      "monto": 369489.0,
+      "cargas": 11
+    },
+    {
+      "fecha": "2026-03-04",
+      "litros": 314.22,
+      "monto": 391766.0,
+      "cargas": 7
+    },
+    {
+      "fecha": "2026-03-05",
+      "litros": 209.66,
+      "monto": 598769.0,
+      "cargas": 10
+    },
+    {
+      "fecha": "2026-03-06",
+      "litros": 346.76,
+      "monto": 477891.0,
+      "cargas": 3
+    },
+    {
+      "fecha": "2026-03-07",
+      "litros": 176.42,
+      "monto": 179991.0,
+      "cargas": 12
+    },
+    {
+      "fecha": "2026-03-08",
+      "litros": 311.08,
+      "monto": 131764.0,
+      "cargas": 8
+    },
+    {
+      "fecha": "2026-03-09",
+      "litros": 397.94,
+      "monto": 334025.0,
+      "cargas": 6
+    },
+    {
+      "fecha": "2026-03-10",
+      "litros": 585.54,
+      "monto": 530390.0,
+      "cargas": 2
+    },
+    {
+      "fecha": "2026-03-11",
+      "litros": 440.14,
+      "monto": 157276.0,
+      "cargas": 10
+    },
+    {
+      "fecha": "2026-03-12",
+      "litros": 475.44,
+      "monto": 484299.0,
+      "cargas": 7
+    },
+    {
+      "fecha": "2026-03-13",
+      "litros": 155.78,
+      "monto": 317383.0,
+      "cargas": 9
+    },
+    {
+      "fecha": "2026-03-14",
+      "litros": 101.62,
+      "monto": 461046.0,
+      "cargas": 6
+    },
+    {
+      "fecha": "2026-03-15",
+      "litros": 585.94,
+      "monto": 480981.0,
+      "cargas": 10
+    },
+    {
+      "fecha": "2026-03-16",
+      "litros": 556.31,
+      "monto": 535259.0,
+      "cargas": 6
+    },
+    {
+      "fecha": "2026-03-17",
+      "litros": 520.83,
+      "monto": 353831.0,
+      "cargas": 5
+    },
+    {
+      "fecha": "2026-03-18",
+      "litros": 176.42,
+      "monto": 481255.0,
+      "cargas": 10
+    },
+    {
+      "fecha": "2026-03-19",
+      "litros": 576.75,
+      "monto": 561217.0,
+      "cargas": 2
+    },
+    {
+      "fecha": "2026-03-20",
+      "litros": 399.47,
+      "monto": 344303.0,
+      "cargas": 3
+    },
+    {
+      "fecha": "2026-03-21",
+      "litros": 564.55,
+      "monto": 539361.0,
+      "cargas": 6
+    },
+    {
+      "fecha": "2026-03-22",
+      "litros": 219.73,
+      "monto": 220436.0,
+      "cargas": 11
+    },
+    {
+      "fecha": "2026-03-23",
+      "litros": 573.47,
+      "monto": 142827.0,
+      "cargas": 9
+    },
+    {
+      "fecha": "2026-03-24",
+      "litros": 508.01,
+      "monto": 588992.0,
+      "cargas": 10
+    },
+    {
+      "fecha": "2026-03-25",
+      "litros": 482.92,
+      "monto": 164196.0,
+      "cargas": 9
+    },
+    {
+      "fecha": "2026-03-26",
+      "litros": 573.42,
+      "monto": 182563.0,
+      "cargas": 10
+    },
+    {
+      "fecha": "2026-03-27",
+      "litros": 536.22,
+      "monto": 311569.0,
+      "cargas": 5
+    },
+    {
+      "fecha": "2026-03-28",
+      "litros": 564.46,
+      "monto": 477633.0,
+      "cargas": 5
+    },
+    {
+      "fecha": "2026-03-29",
+      "litros": 456.47,
+      "monto": 299496.0,
+      "cargas": 12
+    },
+    {
+      "fecha": "2026-03-30",
+      "litros": 424.94,
+      "monto": 319050.0,
+      "cargas": 10
+    },
+    {
+      "fecha": "2026-03-31",
+      "litros": 325.74,
+      "monto": 223953.0,
+      "cargas": 3
+    }
+  ],
+  "top_consumers": [
+    {
+      "patente": "BCTF-91",
+      "departamento": "CASA MATRIZ",
+      "conductor": "Miguel Soto",
+      "total_litros": 1175.44,
+      "total_monto": 1205861.0,
+      "num_cargas": 16,
+      "promedio_litros_carga": 73.47,
+      "promedio_monto_carga": 75366.0,
+      "km_recorridos": 3659,
+      "rendimiento_km_litro": 3.11,
+      "estaciones_frecuentes": {
+        "COPEC Constitucion": 4
+      }
+    },
+    {
+      "patente": "LMDN-33",
+      "departamento": "OBRA LINARES",
+      "conductor": "Luis Rodriguez",
+      "total_litros": 937.41,
+      "total_monto": 941623.0,
+      "num_cargas": 15,
+      "promedio_litros_carga": 62.49,
+      "promedio_monto_carga": 62775.0,
+      "km_recorridos": 2639,
+      "rendimiento_km_litro": 2.82,
+      "estaciones_frecuentes": {
+        "COPEC San Clemente": 4
+      }
+    },
+    {
+      "patente": "VLKJ-61",
+      "departamento": "OBRA TALCA SUR",
+      "conductor": "Oscar Tapia",
+      "total_litros": 867.71,
+      "total_monto": 883729.0,
+      "num_cargas": 15,
+      "promedio_litros_carga": 57.85,
+      "promedio_monto_carga": 58915.0,
+      "km_recorridos": 1738,
+      "rendimiento_km_litro": 2.0,
+      "estaciones_frecuentes": {
+        "COPEC Talca Centro": 8
+      }
+    },
+    {
+      "patente": "RQST-44",
+      "departamento": "CASA MATRIZ",
+      "conductor": "Pablo Rojas",
+      "total_litros": 852.96,
+      "total_monto": 883812.0,
+      "num_cargas": 14,
+      "promedio_litros_carga": 60.93,
+      "promedio_monto_carga": 63129.0,
+      "km_recorridos": 1587,
+      "rendimiento_km_litro": 1.86,
+      "estaciones_frecuentes": {
+        "COPEC Maule": 2
+      }
+    },
+    {
+      "patente": "TMGK-72",
+      "departamento": "OBRA LINARES",
+      "conductor": "Raul Contreras",
+      "total_litros": 606.88,
+      "total_monto": 633380.0,
+      "num_cargas": 14,
+      "promedio_litros_carga": 43.35,
+      "promedio_monto_carga": 45241.0,
+      "km_recorridos": 1092,
+      "rendimiento_km_litro": 1.8,
+      "estaciones_frecuentes": {
+        "COPEC San Clemente": 7
+      }
+    },
+    {
+      "patente": "GGKL-45",
+      "departamento": "CASA MATRIZ",
+      "conductor": "Juan Perez",
+      "total_litros": 497.93,
+      "total_monto": 509958.0,
+      "num_cargas": 14,
+      "promedio_litros_carga": 35.57,
+      "promedio_monto_carga": 36426.0,
+      "km_recorridos": 1714,
+      "rendimiento_km_litro": 3.44,
+      "estaciones_frecuentes": {
+        "COPEC Ruta 5 Sur km245": 7
+      }
+    },
+    {
+      "patente": "ZCXW-27",
+      "departamento": "OBRA CONSTITUCION",
+      "conductor": "Mario Campos",
+      "total_litros": 450.52,
+      "total_monto": 430976.0,
+      "num_cargas": 9,
+      "promedio_litros_carga": 50.06,
+      "promedio_monto_carga": 47886.0,
+      "km_recorridos": 3740,
+      "rendimiento_km_litro": 8.3,
+      "estaciones_frecuentes": {
+        "COPEC Linares": 3
+      }
+    },
+    {
+      "patente": "DFMN-67",
+      "departamento": "OBRA LINARES",
+      "conductor": "Roberto Fuentes",
+      "total_litros": 434.9,
+      "total_monto": 453266.0,
+      "num_cargas": 12,
+      "promedio_litros_carga": 36.24,
+      "promedio_monto_carga": 37772.0,
+      "km_recorridos": 3061,
+      "rendimiento_km_litro": 7.04,
+      "estaciones_frecuentes": {
+        "COPEC Linares": 8
+      }
+    },
+    {
+      "patente": "HNVW-15",
+      "departamento": "OBRA CONSTITUCION",
+      "conductor": "Sergio Vargas",
+      "total_litros": 421.36,
+      "total_monto": 435438.0,
+      "num_cargas": 8,
+      "promedio_litros_carga": 52.67,
+      "promedio_monto_carga": 54430.0,
+      "km_recorridos": 2316,
+      "rendimiento_km_litro": 5.5,
+      "estaciones_frecuentes": {
+        "COPEC Linares": 3
+      }
+    },
+    {
+      "patente": "PSDF-39",
+      "departamento": "CASA MATRIZ",
+      "conductor": "Hugo Espinoza",
+      "total_litros": 340.24,
+      "total_monto": 331557.0,
+      "num_cargas": 6,
+      "promedio_litros_carga": 56.71,
+      "promedio_monto_carga": 55260.0,
+      "km_recorridos": 2354,
+      "rendimiento_km_litro": 6.92,
+      "estaciones_frecuentes": {
+        "COPEC Linares": 7
+      }
+    }
+  ]
+}

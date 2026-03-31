@@ -1,0 +1,934 @@
+"""
+Genera el reporte HTML de rendimiento de vehículos.
+Estilo visual inspirado en el Informe de Gasto de Seguridad (dashboard moderno con
+cards de resumen, gráficos Chart.js, y tablas con pestañas).
+"""
+
+import json
+import os
+import sys
+from datetime import datetime
+
+
+def format_number(n):
+    """Formatea números con separador de miles chileno."""
+    if isinstance(n, float):
+        parts = f"{n:,.2f}".split(".")
+        return parts[0].replace(",", ".") + "," + parts[1]
+    return f"{int(n):,}".replace(",", ".")
+
+
+def format_money(n):
+    """Formatea montos en pesos chilenos."""
+    return f"${format_number(int(n))}"
+
+
+def generate_html(report_data):
+    """Genera el HTML completo del reporte."""
+
+    summary = report_data["summary"]
+    vehicles = report_data["vehicles"]
+    departments = report_data["departments"]
+    daily_trend = report_data["daily_trend"]
+    top_consumers = report_data["top_consumers"]
+
+    # Preparar datos para gráficos
+    dept_labels = json.dumps([d["departamento"][:20] for d in departments])
+    dept_litros = json.dumps([d["total_litros"] for d in departments])
+    dept_montos = json.dumps([d["total_monto"] for d in departments])
+
+    top_labels = json.dumps([v["patente"] for v in top_consumers])
+    top_litros = json.dumps([v["total_litros"] for v in top_consumers])
+    top_montos = json.dumps([v["total_monto"] for v in top_consumers])
+
+    trend_labels = json.dumps([t["fecha"] for t in daily_trend])
+    trend_litros = json.dumps([t["litros"] for t in daily_trend])
+    trend_cargas = json.dumps([t["cargas"] for t in daily_trend])
+
+    # Generar filas de tabla de vehículos
+    vehicle_rows = ""
+    sorted_vehicles = sorted(vehicles.values(), key=lambda x: x["total_litros"], reverse=True)
+    for i, v in enumerate(sorted_vehicles, 1):
+        rendimiento = v.get("rendimiento_km_litro", "-")
+        if rendimiento != "-":
+            rendimiento = f"{rendimiento} km/L"
+        km = v.get("km_recorridos", "-")
+        if km != "-":
+            km = format_number(km)
+        dept = v.get("departamento", "-")
+        conductor = v.get("conductor", "-")
+
+        vehicle_rows += f"""
+        <tr>
+            <td>{i}</td>
+            <td><strong>{v['patente']}</strong></td>
+            <td>{dept}</td>
+            <td>{conductor}</td>
+            <td class="num">{format_number(v['total_litros'])}</td>
+            <td class="num">{format_money(v['total_monto'])}</td>
+            <td class="num">{v['num_cargas']}</td>
+            <td class="num">{format_number(v['promedio_litros_carga'])}</td>
+            <td class="num">{km}</td>
+            <td class="num highlight">{rendimiento}</td>
+        </tr>"""
+
+    # Generar filas de tabla de departamentos
+    dept_rows = ""
+    for d in departments:
+        dept_rows += f"""
+        <tr>
+            <td><strong>{d['departamento']}</strong></td>
+            <td class="num">{d['num_vehiculos']}</td>
+            <td class="num">{d['num_cargas']}</td>
+            <td class="num">{format_number(d['total_litros'])}</td>
+            <td class="num">{format_money(d['total_monto'])}</td>
+        </tr>"""
+
+    html = f"""<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reporte Rendimiento Vehicular - {summary['periodo']}</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+    <style>
+        :root {{
+            --primary: #0d9488;
+            --primary-dark: #0f766e;
+            --primary-light: #ccfbf1;
+            --accent: #c4b515;
+            --bg: #f0fdfa;
+            --card-bg: #ffffff;
+            --text: #1e293b;
+            --text-secondary: #64748b;
+            --border: #e2e8f0;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+        }}
+
+        * {{
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }}
+
+        body {{
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+        }}
+
+        /* Header */
+        .header {{
+            background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+            color: white;
+            padding: 24px 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+        }}
+
+        .header h1 {{
+            font-size: 22px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }}
+
+        .header .meta {{
+            font-size: 13px;
+            opacity: 0.85;
+        }}
+
+        .header .badges {{
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }}
+
+        .badge {{
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }}
+
+        .badge-online {{
+            background: rgba(255,255,255,0.2);
+            color: white;
+        }}
+
+        .badge-online::before {{
+            content: '';
+            width: 8px;
+            height: 8px;
+            background: #4ade80;
+            border-radius: 50%;
+            display: inline-block;
+        }}
+
+        /* Container */
+        .container {{
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 24px;
+        }}
+
+        /* Filter Bar */
+        .filter-bar {{
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 16px 24px;
+            margin-bottom: 24px;
+            display: flex;
+            gap: 16px;
+            align-items: center;
+            flex-wrap: wrap;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            border: 1px solid var(--border);
+        }}
+
+        .filter-bar label {{
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--primary-dark);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }}
+
+        .filter-bar select {{
+            padding: 6px 12px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 14px;
+            background: white;
+            cursor: pointer;
+        }}
+
+        /* KPI Cards */
+        .kpi-grid {{
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }}
+
+        .kpi-card {{
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 20px 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            border: 1px solid var(--border);
+            position: relative;
+            overflow: hidden;
+        }}
+
+        .kpi-card::after {{
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 80px;
+            height: 80px;
+            background: var(--primary-light);
+            border-radius: 0 0 0 80px;
+            opacity: 0.5;
+        }}
+
+        .kpi-card .label {{
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--primary-dark);
+            margin-bottom: 4px;
+        }}
+
+        .kpi-card .value {{
+            font-size: 28px;
+            font-weight: 800;
+            color: var(--primary);
+            line-height: 1.2;
+        }}
+
+        .kpi-card .sub {{
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }}
+
+        /* Charts */
+        .charts-grid {{
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+            gap: 24px;
+            margin-bottom: 24px;
+        }}
+
+        .chart-card {{
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            border: 1px solid var(--border);
+        }}
+
+        .chart-card h3 {{
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 16px;
+        }}
+
+        .chart-container {{
+            position: relative;
+            height: 300px;
+        }}
+
+        /* Tabs */
+        .tabs-container {{
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            border: 1px solid var(--border);
+            margin-bottom: 24px;
+        }}
+
+        .tabs {{
+            display: flex;
+            gap: 4px;
+            margin-bottom: 16px;
+        }}
+
+        .tab {{
+            padding: 8px 20px;
+            border: none;
+            background: #f1f5f9;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            transition: all 0.2s;
+        }}
+
+        .tab:hover {{
+            background: #e2e8f0;
+        }}
+
+        .tab.active {{
+            background: var(--primary);
+            color: white;
+        }}
+
+        .tab-content {{
+            display: none;
+        }}
+
+        .tab-content.active {{
+            display: block;
+        }}
+
+        /* Tables */
+        table {{
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }}
+
+        thead th {{
+            text-align: left;
+            padding: 10px 12px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--primary-dark);
+            border-bottom: 2px solid var(--primary);
+            white-space: nowrap;
+        }}
+
+        tbody td {{
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--border);
+        }}
+
+        tbody tr:hover {{
+            background: var(--primary-light);
+        }}
+
+        .num {{
+            text-align: right;
+            font-variant-numeric: tabular-nums;
+        }}
+
+        .highlight {{
+            color: var(--primary);
+            font-weight: 700;
+        }}
+
+        /* Search/Filter */
+        .table-controls {{
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+            gap: 8px;
+        }}
+
+        .search-input {{
+            padding: 8px 16px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 13px;
+            width: 260px;
+            outline: none;
+        }}
+
+        .search-input:focus {{
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(13,148,136,0.1);
+        }}
+
+        .export-btn {{
+            padding: 8px 16px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }}
+
+        .export-btn:hover {{
+            background: var(--primary-dark);
+        }}
+
+        /* Footer */
+        .footer {{
+            text-align: center;
+            padding: 24px;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }}
+
+        /* Responsive */
+        @media (max-width: 768px) {{
+            .header {{
+                padding: 16px;
+            }}
+            .container {{
+                padding: 12px;
+            }}
+            .kpi-grid {{
+                grid-template-columns: repeat(2, 1fr);
+            }}
+            .charts-grid {{
+                grid-template-columns: 1fr;
+            }}
+            .kpi-card .value {{
+                font-size: 22px;
+            }}
+            table {{
+                font-size: 11px;
+            }}
+        }}
+
+        @media print {{
+            .filter-bar, .search-input, .export-btn, .tabs {{
+                display: none !important;
+            }}
+            .tab-content {{
+                display: block !important;
+            }}
+            body {{
+                background: white;
+            }}
+        }}
+
+        /* Sort indicator */
+        th.sortable {{
+            cursor: pointer;
+            user-select: none;
+        }}
+        th.sortable:hover {{
+            color: var(--primary);
+        }}
+        th.sortable::after {{
+            content: ' \\2195';
+            font-size: 10px;
+            opacity: 0.4;
+        }}
+        th.sort-asc::after {{
+            content: ' \\2191';
+            opacity: 1;
+        }}
+        th.sort-desc::after {{
+            content: ' \\2193';
+            opacity: 1;
+        }}
+    </style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+    <div>
+        <h1>Informe de Rendimiento Vehicular</h1>
+        <div class="meta">Periodo: {summary['periodo']} | Actualizado: {summary['fecha_generacion']}</div>
+    </div>
+    <div class="badges">
+        <span class="badge badge-online">En linea</span>
+        <button class="export-btn" onclick="window.print()">Imprimir</button>
+    </div>
+</div>
+
+<div class="container">
+
+    <!-- Filtros dinámicos -->
+    <div class="filter-bar" id="filterBar">
+        <div>
+            <label>Departamento</label><br>
+            <select id="filterDept" onchange="applyFilters()">
+                <option value="">Todos</option>
+            </select>
+        </div>
+        <div>
+            <label>Ordenar por</label><br>
+            <select id="sortBy" onchange="applyFilters()">
+                <option value="litros_desc">Mayor consumo (litros)</option>
+                <option value="litros_asc">Menor consumo (litros)</option>
+                <option value="monto_desc">Mayor gasto ($)</option>
+                <option value="monto_asc">Menor gasto ($)</option>
+                <option value="cargas_desc">Mas cargas</option>
+                <option value="rendimiento_desc">Mejor rendimiento</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- KPI Cards -->
+    <div class="kpi-grid">
+        <div class="kpi-card">
+            <div class="label">Monto Total</div>
+            <div class="value">{format_money(summary['total_monto'])}</div>
+            <div class="sub">{summary['total_cargas']} transacciones</div>
+        </div>
+        <div class="kpi-card">
+            <div class="label">Vehiculos</div>
+            <div class="value">{summary['total_vehiculos']}</div>
+            <div class="sub">con consumo registrado</div>
+        </div>
+        <div class="kpi-card">
+            <div class="label">Litros Totales</div>
+            <div class="value">{format_number(summary['total_litros'])}</div>
+            <div class="sub">Petroleo Diesel</div>
+        </div>
+        <div class="kpi-card">
+            <div class="label">Promedio por Vehiculo</div>
+            <div class="value">{format_number(summary['promedio_litros_vehiculo'])}</div>
+            <div class="sub">litros/vehiculo</div>
+        </div>
+        <div class="kpi-card">
+            <div class="label">Gasto Promedio</div>
+            <div class="value">{format_money(summary['promedio_monto_vehiculo'])}</div>
+            <div class="sub">por vehiculo</div>
+        </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="charts-grid">
+        <div class="chart-card">
+            <h3>Consumo por Departamento</h3>
+            <div class="chart-container">
+                <canvas id="chartDept"></canvas>
+            </div>
+        </div>
+        <div class="chart-card">
+            <h3>Top 10 Vehiculos - Mayor Consumo</h3>
+            <div class="chart-container">
+                <canvas id="chartTop"></canvas>
+            </div>
+        </div>
+    </div>
+
+    {"" if not daily_trend else '''
+    <div class="charts-grid">
+        <div class="chart-card" style="grid-column: 1 / -1;">
+            <h3>Tendencia Diaria de Consumo</h3>
+            <div class="chart-container">
+                <canvas id="chartTrend"></canvas>
+            </div>
+        </div>
+    </div>
+    '''}
+
+    <!-- Tablas con Tabs -->
+    <div class="tabs-container">
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab(event, 'tabVehicles')">Por Vehiculo</button>
+            <button class="tab" onclick="switchTab(event, 'tabDepts')">Por Departamento</button>
+            <button class="tab" onclick="switchTab(event, 'tabDetail')">Detalle</button>
+        </div>
+
+        <!-- Tab: Por Vehículo -->
+        <div id="tabVehicles" class="tab-content active">
+            <div class="table-controls">
+                <input type="text" class="search-input" id="searchVehicle"
+                       placeholder="Buscar patente, departamento..."
+                       oninput="filterTable()">
+                <button class="export-btn" onclick="exportCSV()">Exportar CSV</button>
+            </div>
+            <div style="overflow-x: auto;">
+                <table id="vehicleTable">
+                    <thead>
+                        <tr>
+                            <th class="sortable" data-col="0">#</th>
+                            <th class="sortable" data-col="1">Patente</th>
+                            <th class="sortable" data-col="2">Departamento</th>
+                            <th class="sortable" data-col="3">Conductor</th>
+                            <th class="sortable num" data-col="4">Litros</th>
+                            <th class="sortable num" data-col="5">Monto</th>
+                            <th class="sortable num" data-col="6">Cargas</th>
+                            <th class="sortable num" data-col="7">Prom. Lt/Carga</th>
+                            <th class="sortable num" data-col="8">Km Recorridos</th>
+                            <th class="sortable num" data-col="9">Rendimiento</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {vehicle_rows}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Tab: Por Departamento -->
+        <div id="tabDepts" class="tab-content">
+            <div style="overflow-x: auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Departamento</th>
+                            <th class="num">Vehiculos</th>
+                            <th class="num">Cargas</th>
+                            <th class="num">Total Litros</th>
+                            <th class="num">Total Monto</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {dept_rows}
+                        <tr style="font-weight:700; border-top:2px solid var(--primary);">
+                            <td>TOTAL</td>
+                            <td class="num">{summary['total_vehiculos']}</td>
+                            <td class="num">{summary['total_cargas']}</td>
+                            <td class="num">{format_number(summary['total_litros'])}</td>
+                            <td class="num">{format_money(summary['total_monto'])}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Tab: Detalle JSON -->
+        <div id="tabDetail" class="tab-content">
+            <p style="color:var(--text-secondary); margin-bottom:12px; font-size:13px;">
+                Datos completos del reporte en formato estructurado. Usa el boton "Exportar CSV" para descargar.
+            </p>
+            <pre style="background:#f8fafc; padding:16px; border-radius:8px; font-size:12px; overflow-x:auto; max-height:400px; overflow-y:auto;"
+                 id="jsonPreview"></pre>
+        </div>
+    </div>
+</div>
+
+<div class="footer">
+    &copy; {datetime.now().year} Constructora Colbun SPA - Reporte generado automaticamente | Fuente: Cupon Electronico COPEC
+</div>
+
+<script>
+    // Data
+    const reportData = {json.dumps(report_data, ensure_ascii=False)};
+
+    // Initialize filters
+    function initFilters() {{
+        const deptSelect = document.getElementById('filterDept');
+        const depts = [...new Set(Object.values(reportData.vehicles).map(v => v.departamento).filter(Boolean))];
+        depts.sort();
+        depts.forEach(d => {{
+            const opt = document.createElement('option');
+            opt.value = d;
+            opt.textContent = d;
+            deptSelect.appendChild(opt);
+        }});
+    }}
+
+    // Tabs
+    function switchTab(e, tabId) {{
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+        e.target.classList.add('active');
+        document.getElementById(tabId).classList.add('active');
+    }}
+
+    // Table filter
+    function filterTable() {{
+        const query = document.getElementById('searchVehicle').value.toLowerCase();
+        const rows = document.querySelectorAll('#vehicleTable tbody tr');
+        rows.forEach(row => {{
+            const text = row.textContent.toLowerCase();
+            row.style.display = text.includes(query) ? '' : 'none';
+        }});
+    }}
+
+    // Apply global filters
+    function applyFilters() {{
+        const dept = document.getElementById('filterDept').value;
+        const rows = document.querySelectorAll('#vehicleTable tbody tr');
+        rows.forEach(row => {{
+            const cells = row.querySelectorAll('td');
+            if (cells.length < 3) return;
+            const rowDept = cells[2].textContent.trim();
+            if (dept && rowDept !== dept) {{
+                row.style.display = 'none';
+            }} else {{
+                row.style.display = '';
+            }}
+        }});
+    }}
+
+    // Sortable columns
+    document.querySelectorAll('th.sortable').forEach(th => {{
+        th.addEventListener('click', () => {{
+            const table = th.closest('table');
+            const tbody = table.querySelector('tbody');
+            const rows = Array.from(tbody.querySelectorAll('tr'));
+            const col = parseInt(th.dataset.col);
+            const isAsc = th.classList.contains('sort-asc');
+
+            table.querySelectorAll('th').forEach(h => h.classList.remove('sort-asc', 'sort-desc'));
+            th.classList.add(isAsc ? 'sort-desc' : 'sort-asc');
+
+            rows.sort((a, b) => {{
+                let aVal = a.cells[col]?.textContent.trim() || '';
+                let bVal = b.cells[col]?.textContent.trim() || '';
+
+                // Try numeric comparison
+                const aNum = parseFloat(aVal.replace(/[$\\.]/g, '').replace(',', '.'));
+                const bNum = parseFloat(bVal.replace(/[$\\.]/g, '').replace(',', '.'));
+
+                if (!isNaN(aNum) && !isNaN(bNum)) {{
+                    return isAsc ? bNum - aNum : aNum - bNum;
+                }}
+                return isAsc ? bVal.localeCompare(aVal) : aVal.localeCompare(bVal);
+            }});
+
+            rows.forEach((row, i) => {{
+                row.cells[0].textContent = i + 1;
+                tbody.appendChild(row);
+            }});
+        }});
+    }});
+
+    // Export CSV
+    function exportCSV() {{
+        const headers = ['Patente', 'Departamento', 'Conductor', 'Litros', 'Monto', 'Cargas', 'Prom Lt/Carga', 'Km Recorridos', 'Rendimiento'];
+        const rows = Object.values(reportData.vehicles).map(v => [
+            v.patente,
+            v.departamento || '',
+            v.conductor || '',
+            v.total_litros,
+            v.total_monto,
+            v.num_cargas,
+            v.promedio_litros_carga,
+            v.km_recorridos || '',
+            v.rendimiento_km_litro || ''
+        ]);
+
+        let csv = headers.join(';') + '\\n';
+        rows.forEach(r => csv += r.join(';') + '\\n');
+
+        const blob = new Blob([csv], {{ type: 'text/csv;charset=utf-8;' }});
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `rendimiento_vehicular_${{reportData.summary.periodo.replace(/ /g, '_')}}.csv`;
+        link.click();
+    }}
+
+    // Charts
+    const COLORS = {{
+        primary: '#0d9488',
+        primaryLight: '#5eead4',
+        accent: '#c4b515',
+        accentLight: '#fef08a',
+        teal: ['#0d9488', '#14b8a6', '#2dd4bf', '#5eead4', '#99f6e4'],
+        mixed: ['#0d9488', '#c4b515', '#6366f1', '#f97316', '#ec4899', '#8b5cf6', '#06b6d4', '#84cc16']
+    }};
+
+    // Department Chart
+    if (document.getElementById('chartDept')) {{
+        new Chart(document.getElementById('chartDept'), {{
+            type: 'bar',
+            data: {{
+                labels: {dept_labels},
+                datasets: [{{
+                    label: 'Litros',
+                    data: {dept_litros},
+                    backgroundColor: COLORS.accent + 'cc',
+                    borderRadius: 4,
+                    yAxisID: 'y'
+                }}, {{
+                    label: 'Monto ($)',
+                    data: {dept_montos},
+                    backgroundColor: COLORS.primary + 'cc',
+                    borderRadius: 4,
+                    yAxisID: 'y1'
+                }}]
+            }},
+            options: {{
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {{
+                    legend: {{ position: 'top' }}
+                }},
+                scales: {{
+                    y: {{
+                        position: 'left',
+                        title: {{ display: true, text: 'Litros' }},
+                        ticks: {{ callback: v => v.toLocaleString('es-CL') }}
+                    }},
+                    y1: {{
+                        position: 'right',
+                        title: {{ display: true, text: 'Monto ($)' }},
+                        grid: {{ drawOnChartArea: false }},
+                        ticks: {{ callback: v => '$' + v.toLocaleString('es-CL') }}
+                    }}
+                }}
+            }}
+        }});
+    }}
+
+    // Top Vehicles Chart
+    if (document.getElementById('chartTop')) {{
+        new Chart(document.getElementById('chartTop'), {{
+            type: 'bar',
+            data: {{
+                labels: {top_labels},
+                datasets: [{{
+                    label: 'Litros',
+                    data: {top_litros},
+                    backgroundColor: COLORS.mixed.map(c => c + 'cc'),
+                    borderRadius: 4
+                }}]
+            }},
+            options: {{
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {{
+                    legend: {{ display: false }}
+                }},
+                scales: {{
+                    x: {{
+                        ticks: {{ callback: v => v.toLocaleString('es-CL') + ' L' }}
+                    }}
+                }}
+            }}
+        }});
+    }}
+
+    // Trend Chart
+    if (document.getElementById('chartTrend') && {json.dumps(len(daily_trend) > 0)}) {{
+        new Chart(document.getElementById('chartTrend'), {{
+            type: 'line',
+            data: {{
+                labels: {trend_labels},
+                datasets: [{{
+                    label: 'Litros',
+                    data: {trend_litros},
+                    borderColor: COLORS.primary,
+                    backgroundColor: COLORS.primary + '20',
+                    fill: true,
+                    tension: 0.3,
+                    yAxisID: 'y'
+                }}, {{
+                    label: 'Cargas',
+                    data: {trend_cargas},
+                    borderColor: COLORS.accent,
+                    backgroundColor: COLORS.accent + '20',
+                    fill: false,
+                    tension: 0.3,
+                    yAxisID: 'y1'
+                }}]
+            }},
+            options: {{
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {{
+                    legend: {{ position: 'top' }}
+                }},
+                scales: {{
+                    y: {{
+                        position: 'left',
+                        title: {{ display: true, text: 'Litros' }}
+                    }},
+                    y1: {{
+                        position: 'right',
+                        title: {{ display: true, text: 'Cargas' }},
+                        grid: {{ drawOnChartArea: false }}
+                    }}
+                }}
+            }}
+        }});
+    }}
+
+    // JSON Preview
+    document.getElementById('jsonPreview').textContent = JSON.stringify(reportData.summary, null, 2);
+
+    // Init
+    initFilters();
+</script>
+
+</body>
+</html>"""
+
+    return html
+
+
+def main():
+    """Función principal de generación de reporte."""
+    data_dir = os.environ.get("DATA_DIR", "data")
+    output_dir = os.environ.get("OUTPUT_DIR", "docs")
+
+    # Cargar datos procesados
+    json_path = os.path.join(data_dir, "report_data.json")
+    if not os.path.exists(json_path):
+        print(f"[ERROR] No se encontro {json_path}. Ejecuta process_data.py primero.")
+        sys.exit(1)
+
+    with open(json_path, "r", encoding="utf-8") as f:
+        report_data = json.load(f)
+
+    # Generar HTML
+    html = generate_html(report_data)
+
+    # Guardar
+    os.makedirs(output_dir, exist_ok=True)
+    output_path = os.path.join(output_dir, "index.html")
+    with open(output_path, "w", encoding="utf-8") as f:
+        f.write(html)
+
+    print(f"[DONE] Reporte HTML generado en: {output_path}")
+    print(f"  - Vehiculos: {report_data['summary']['total_vehiculos']}")
+    print(f"  - Periodo: {report_data['summary']['periodo']}")
+
+
+if __name__ == "__main__":
+    main()

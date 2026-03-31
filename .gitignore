@@ -1,0 +1,20 @@
+# Data files (except processed JSON)
+data/*.xlsx
+data/*.xls
+data/*.csv
+data/latest_file.txt
+data/error_screenshot.png
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
