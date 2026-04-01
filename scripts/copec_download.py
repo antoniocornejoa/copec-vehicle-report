@@ -86,7 +86,7 @@ async def configure_and_download(page):
     print(f"[OK] Mes Inicio/Final: {month_label} (por defecto)")
 
     # 4. Ingresar email
-    email_input = page.locator('#ctl00_CpH1_txbEmail1')
+    email_input = page.locator('#ctl00_CpH1_txbEmail')
     await email_input.fill(REPORT_EMAIL)
     print(f"[OK] Email ingresado: {REPORT_EMAIL}")
 
