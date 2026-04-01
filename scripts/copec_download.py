@@ -21,10 +21,10 @@ async def login(page):
     print(f"[INFO] Navegando a {COPEC_URL}...")
     await page.goto(COPEC_URL, wait_until="networkidle", timeout=60000)
 
-    # Buscar campos de login (RUT y Clave)
-    rut_input = page.locator('input[id*="txtRut"], input[name*="Rut"], input[placeholder*="Rut"]').first
-    pass_input = page.locator('input[type="password"]').first
-    login_btn = page.locator('input[type="submit"], button[id*="btnIngresar"], input[id*="btnIngresar"]').first
+    # Campos de login con IDs exactos de la página Copec
+    rut_input = page.locator('#TxbRutSA')
+    pass_input = page.locator('#TxbClaveSA')
+    login_btn = page.locator('#Button1')  # <a> link "INGRESAR"
 
     await rut_input.fill(COPEC_RUT)
     await pass_input.fill(COPEC_PASSWORD)
