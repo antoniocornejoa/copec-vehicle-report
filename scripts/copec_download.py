@@ -1,6 +1,7 @@
 """
 Automatización de descarga de transacciones desde Cupón Electrónico Copec.
 Usa Playwright para navegar el sitio, solicitar el reporte y enviarlo por email.
+IDs de elementos obtenidos directamente de la página real de Copec.
 """
 
 import asyncio
@@ -14,6 +15,7 @@ COPEC_RUT = os.environ.get("COPEC_RUT", "")
 COPEC_PASSWORD = os.environ.get("COPEC_PASSWORD", "")
 REPORT_EMAIL = os.environ.get("REPORT_EMAIL", "acornejo@cindependencia.cl")
 COPEC_URL = "https://cuponelectronico.copec.cl/default.aspx"
+DOWNLOAD_URL = "https://cuponelectronico.copec.cl/VistasCte/cteBajarInfo.aspx"
 
 
 async def login(page):
@@ -36,101 +38,75 @@ async def login(page):
 
 
 async def navigate_to_download(page):
-    """Navega a Informes > Descarga Transacciones por Departamento."""
+    """Navega directamente a la página de Descarga Transacciones por Departamento."""
     print("[INFO] Navegando a Descarga Transacciones por Departamento...")
 
-    # Hacer hover en menú "Informes"
-    informes_menu = page.locator('a:has-text("Informes"), li:has-text("Informes") > a').first
-    await informes_menu.hover()
-    await page.wait_for_timeout(1000)
-
-    # Click en "Descarga Transacciones por Departamento"
-    descarga_link = page.locator('a:has-text("Descarga Transacciones por Departamento")').first
-    await descarga_link.click()
-    await page.wait_for_load_state("networkidle", timeout=30000)
+    # Navegar directamente a la URL de descarga (más confiable que hover en menú)
+    await page.goto(DOWNLOAD_URL, wait_until="networkidle", timeout=30000)
     print("[OK] Página de descarga cargada.")
 
 
 async def configure_and_download(page):
     """Configura los filtros y solicita la descarga."""
     now = datetime.now()
-    current_month = now.strftime("%B %Y")  # Ej: "Marzo 2026"
+    month_map = {
+        1: "Enero", 2: "Febrero", 3: "Marzo", 4: "Abril",
+        5: "Mayo", 6: "Junio", 7: "Julio", 8: "Agosto",
+        9: "Septiembre", 10: "Octubre", 11: "Noviembre", 12: "Diciembre"
+    }
+    month_label = f"{month_map[now.month]} {now.year}"
+    print(f"[INFO] Configurando descarga para: {month_label}")
 
-    print(f"[INFO] Configurando descarga para: {current_month}")
-
-    # Seleccionar tipo "Consumos" (radio button - generalmente ya seleccionado)
-    consumos_radio = page.locator('input[type="radio"][id*="Consumos"], input[type="radio"]:first-of-type').first
+    # 1. Tipo de Informe: "Consumos" (radio button, generalmente ya seleccionado)
+    consumos_radio = page.locator('#ctl00_CpH1_TipInforme_0')
     if await consumos_radio.is_visible():
         await consumos_radio.check()
+        print("[OK] Tipo Informe: Consumos")
 
-    # Seleccionar producto "PD" (Petróleo Diesel)
-    producto_select = page.locator('select[id*="Producto"], select[id*="producto"]').first
-    if await producto_select.is_visible():
-        # Intentar seleccionar por value o por texto
-        try:
-            await producto_select.select_option(label="PD")
-        except Exception:
-            try:
-                await producto_select.select_option(value="PD")
-            except Exception:
-                # Buscar opción que contenga "PD"
-                options = await producto_select.locator("option").all()
-                for opt in options:
-                    text = await opt.text_content()
-                    if "PD" in text.upper():
-                        value = await opt.get_attribute("value")
-                        await producto_select.select_option(value=value)
-                        break
-        print("[OK] Producto PD seleccionado.")
+    # 2. Producto: Usar RadComboBox de Telerik
+    # Los meses y producto son RadComboBox (Telerik), no <select> estándar
+    # Por defecto ya viene "Todos los productos" y meses del mes actual
+    # Si necesitamos cambiar producto a PD, hacemos click en el combo y seleccionamos
+    producto_input = page.locator('#ctl00_CpH1_cbProducto_Input')
+    if await producto_input.is_visible():
+        # Click para abrir el dropdown
+        await producto_input.click()
+        await page.wait_for_timeout(500)
+        # Buscar la opción PD en el dropdown desplegado
+        pd_option = page.locator('.rcbList .rcbItem, .rcbList li').filter(has_text="PD")
+        if await pd_option.count() > 0:
+            await pd_option.first.click()
+            await page.wait_for_timeout(500)
+            print("[OK] Producto PD seleccionado.")
+        else:
+            print("[INFO] Usando producto por defecto (Todos los productos).")
 
-    # Configurar Mes Inicio = mes actual
-    mes_inicio = page.locator('select[id*="MesInicio"], select[id*="mesInicio"], select[id*="ddlMesInicio"]').first
-    if await mes_inicio.is_visible():
-        month_map = {
-            1: "Enero", 2: "Febrero", 3: "Marzo", 4: "Abril",
-            5: "Mayo", 6: "Junio", 7: "Julio", 8: "Agosto",
-            9: "Septiembre", 10: "Octubre", 11: "Noviembre", 12: "Diciembre"
-        }
-        month_label = f"{month_map[now.month]} {now.year}"
-        try:
-            await mes_inicio.select_option(label=month_label)
-        except Exception:
-            # Intentar solo con el mes
-            await mes_inicio.select_option(label=month_map[now.month])
-        print(f"[OK] Mes Inicio: {month_label}")
+    # 3. Mes Inicio y Mes Final - por defecto ya vienen con el mes actual
+    # No es necesario cambiarlos si queremos el mes actual
+    print(f"[OK] Mes Inicio/Final: {month_label} (por defecto)")
 
-    # Configurar Mes Final = mes actual
-    mes_final = page.locator('select[id*="MesFinal"], select[id*="mesFinal"], select[id*="ddlMesFinal"]').first
-    if await mes_final.is_visible():
-        try:
-            await mes_final.select_option(label=month_label)
-        except Exception:
-            await mes_final.select_option(label=month_map[now.month])
-        print(f"[OK] Mes Final: {month_label}")
+    # 4. Ingresar email
+    email_input = page.locator('#ctl00_CpH1_txbEmail1')
+    await email_input.fill(REPORT_EMAIL)
+    print(f"[OK] Email ingresado: {REPORT_EMAIL}")
 
-    # Ingresar email
-    email_input = page.locator('input[id*="Email"], input[id*="email"], input[type="email"], input[id*="txtEmail"]').first
-    if await email_input.is_visible():
-        await email_input.fill(REPORT_EMAIL)
-        print(f"[OK] Email ingresado: {REPORT_EMAIL}")
-
-    # Marcar checkbox "Seleccione Departamentos" (marcar todos)
-    dept_checkbox = page.locator('input[type="checkbox"][id*="Todos"], input[type="checkbox"][id*="todos"], input[type="checkbox"][id*="SelectAll"]').first
-    if await dept_checkbox.is_visible():
-        await dept_checkbox.check()
+    # 5. Marcar checkbox "Seleccionar Todos" los departamentos
+    select_all_cb = page.locator('#ctl00_CpH1_radGBajarInfo_ctl00_ctl02_ctl02_chkSelectAll')
+    if await select_all_cb.is_visible():
+        await select_all_cb.check()
         print("[OK] Todos los departamentos seleccionados.")
     else:
-        # Intentar con el checkbox visible en la lista
-        checkboxes = page.locator('input[type="checkbox"]')
+        # Fallback: marcar todos los checkboxes individuales
+        checkboxes = page.locator('input[type="checkbox"][id*="chkSelect"]')
         count = await checkboxes.count()
         for i in range(count):
             cb = checkboxes.nth(i)
             if await cb.is_visible():
                 await cb.check()
-        print("[OK] Departamentos seleccionados.")
+        print(f"[OK] {count} departamentos seleccionados.")
 
-    # Click en "DESCARGAR"
-    descargar_btn = page.locator('input[value="DESCARGAR"], button:has-text("DESCARGAR"), input[id*="btnDescargar"]').first
+    # 6. Click en "DESCARGAR" - es un <a> link con __doPostBack
+    descargar_btn = page.locator('#ctl00_CpH1_btnAceptar')
     await descargar_btn.click()
     print("[OK] Solicitud de descarga enviada. El reporte será enviado al email.")
 
