@@ -28,59 +28,105 @@ async def login(page):
 
     await rut_input.fill(COPEC_RUT)
     await pass_input.fill(COPEC_PASSWORD)
-    await login_btn.click()
 
-    await page.wait_for_load_state("networkidle", timeout=30000)
-    await page.wait_for_timeout(2000)
+    # El click de login causa navegación - esperarla explícitamente
+    async with page.expect_navigation(wait_until="networkidle", timeout=60000):
+        await login_btn.click()
 
-    # Verificar login exitoso - debe haber un menú de navegación
-    title = await page.title()
-    print(f"[OK] Login exitoso. Título: {title}")
+    # Esperar a que la página post-login termine de cargar completamente
+    await page.wait_for_timeout(3000)
+    await page.wait_for_load_state("domcontentloaded", timeout=30000)
+
+    try:
+        title = await page.title()
+        url = page.url
+        print(f"[OK] Login exitoso. Título: {title}, URL: {url}")
+    except:
+        print("[OK] Login completado (página aún cargando).")
+
     await page.screenshot(path="data/debug_after_login.png")
 
 
 async def navigate_to_download(page):
-    """Navega a Descarga Transacciones via menú Informes."""
-    print("[INFO] Navegando via menú: Informes > Descarga Transacciones...")
+    """Navega a Descarga Transacciones via menú o URL directa."""
 
-    # Buscar el menú "Informes" y hacer hover para desplegar
-    informes_menu = page.locator('a:has-text("Informes"), li:has-text("Informes") > a').first
-    await informes_menu.hover()
-    await page.wait_for_timeout(1000)
+    # Estrategia 1: Intentar navegar por menú
+    print("[INFO] Intentando navegar via menú: Informes > Descarga Transacciones...")
+    try:
+        informes_menu = page.locator('a:has-text("Informes"), li:has-text("Informes") > a').first
+        if await informes_menu.count() > 0 and await informes_menu.is_visible(timeout=5000):
+            await informes_menu.hover()
+            await page.wait_for_timeout(1500)
 
-    # Buscar el submenú "Descarga Transacciones por Departamento"
-    # Intentar varias formas de encontrar el link
-    download_link = None
-    selectors = [
-        'a:has-text("Descarga Transacciones")',
-        'a:has-text("Bajar Info")',
-        'a[href*="cteBajarInfo"]',
-        'a[href*="BajarInfo"]',
-    ]
+            # Buscar submenú
+            selectors = [
+                'a:has-text("Descarga Transacciones")',
+                'a:has-text("Bajar Info")',
+                'a[href*="cteBajarInfo"]',
+                'a[href*="BajarInfo"]',
+            ]
 
-    for sel in selectors:
-        loc = page.locator(sel)
-        count = await loc.count()
-        if count > 0:
-            download_link = loc.first
-            print(f"[DEBUG] Encontrado con selector: {sel}")
-            break
+            for sel in selectors:
+                loc = page.locator(sel)
+                if await loc.count() > 0:
+                    print(f"[DEBUG] Link encontrado: {sel}")
+                    async with page.expect_navigation(wait_until="networkidle", timeout=30000):
+                        await loc.first.click()
+                    await page.wait_for_timeout(3000)
 
-    if download_link is None:
-        # Tomar screenshot del menú desplegado para debug
-        await page.screenshot(path="data/debug_menu_informes.png")
-        # Listar todos los links visibles para debug
-        all_links = await page.evaluate('''() => {
-            return Array.from(document.querySelectorAll('a')).map(a => ({
-                text: a.textContent.trim().substring(0, 50),
-                href: a.href,
-                visible: a.offsetParent !== null
-            })).filter(a => a.visible && a.text.length > 0);
-        }''')
-        print(f"[DEBUG] Links visibles ({len(all_links)}):")
-        for link in all_links:
-            print(f"  - '{link['text']}' -> {link['href']}")
-        raise Exception("No se encontró el link de Descarga Transacciones en el menú")
+                    # Verificar que cargó
+                    page_text = await page.text_content('body') or ''
+                    if 'Ingrese Email' in page_text or 'DESCARGAR' in page_text or 'Descarga Transacciones' in page_text:
+                        print("[OK] Página de descarga cargada via menú.")
+                        await page.screenshot(path="data/debug_download_page.png")
+                        return
+                    else:
+                        print("[WARN] Menú clickeado pero página no es la correcta.")
+                    break
+
+            # Si llegamos aquí, el menú no funcionó. Debug info:
+            await page.screenshot(path="data/debug_menu_informes.png")
+            print("[WARN] Navegación por menú no funcionó.")
+        else:
+            print("[WARN] Menú Informes no encontrado.")
+    except Exception as e:
+        print(f"[WARN] Error en navegación por menú: {e}")
+
+    # Estrategia 2: Navegar directamente a la URL
+    print("[INFO] Intentando navegación directa a URL de descarga...")
+    DOWNLOAD_URL = "https://cuponelectronico.copec.cl/VistasCte/cteBajarInfo.aspx"
+
+    for attempt in range(1, 4):
+        try:
+            await page.goto(DOWNLOAD_URL, wait_until="networkidle", timeout=30000)
+            await page.wait_for_timeout(3000)
+
+            page_text = await page.text_content('body') or ''
+            if 'Ingrese Email' in page_text or 'DESCARGAR' in page_text or 'Descarga Transacciones' in page_text:
+                print(f"[OK] Página de descarga cargada via URL directa (intento {attempt}).")
+                await page.screenshot(path="data/debug_download_page.png")
+                return
+            else:
+                title = await page.title()
+                print(f"[WARN] Intento {attempt}: Página no es la correcta. Título: {title}")
+        except Exception as e:
+            print(f"[WARN] Intento {attempt} URL directa falló: {e}")
+
+        if attempt < 3:
+            await page.wait_for_timeout(3000)
+
+    # Si nada funcionó, listar links para debug y fallar
+    await page.screenshot(path="data/debug_navigation_failed.png")
+    all_links = await page.evaluate('''() => {
+        return Array.from(document.querySelectorAll('a')).map(a => ({
+            text: a.textContent.trim().substring(0, 60),
+            href: a.href
+        })).filter(a => a.text.length > 0).slice(0, 30);
+    }''')
+    print(f"[DEBUG] Links disponibles:")
+    for link in all_links:
+        print(f"  - '{link['text']}' -> {link['href']}")
+    raise Exception("No se pudo navegar a la página de descarga por ningún método.")
 
     await download_link.click()
     await page.wait_for_load_state("networkidle", timeout=30000)
