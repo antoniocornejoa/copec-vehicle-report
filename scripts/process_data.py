@@ -70,14 +70,18 @@ def normalize_columns(df):
             column_mapping[col] = "estacion"
         elif any(k in col_upper for k in ["PRODUCTO", "PROD"]):
             column_mapping[col] = "producto"
-        elif any(k in col_upper for k in ["LITRO", "CANTIDAD", "LTS", "VOLUMEN"]):
+        elif any(k in col_upper for k in ["LITRO", "CANTIDAD", "LTS", "VOLUMEN", "VOL."]):
             column_mapping[col] = "litros"
-        elif any(k in col_upper for k in ["MONTO", "VALOR", "NETO", "TOTAL", "IMPORTE"]):
+        elif any(k in col_upper for k in ["MONTO", "VALOR", "NETO", "IMPORTE"]):
             column_mapping[col] = "monto"
-        elif any(k in col_upper for k in ["KM", "KILOMETR", "ODOMETRO", "ODÓMETRO"]):
+        elif any(k in col_upper for k in ["KM", "KILOMETR", "ODOMETRO", "ODÓMETRO", "ODOMET"]):
             column_mapping[col] = "kilometraje"
         elif any(k in col_upper for k in ["CONDUCTOR", "CHOFER", "DRIVER"]):
             column_mapping[col] = "conductor"
+        elif any(k in col_upper for k in ["RENDIMIENTO"]):
+            column_mapping[col] = "rendimiento"
+        elif any(k in col_upper for k in ["PRECIO UNIT", "PRECIO_UNIT"]):
+            column_mapping[col] = "precio_unitario"
         elif any(k in col_upper for k in ["HORA", "TIME"]):
             column_mapping[col] = "hora"
         elif any(k in col_upper for k in ["TARJETA", "CARD"]):
@@ -191,7 +195,7 @@ def process_vehicle_data(df):
         df = df.rename(columns={df.columns[0]: "patente"})
 
     # Limpiar datos numéricos
-    for col in ["litros", "monto"]:
+    for col in ["litros", "monto", "kilometraje", "rendimiento", "precio_unitario"]:
         if col in df.columns:
             df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0)
 
@@ -211,6 +215,7 @@ def process_vehicle_data(df):
             "num_cargas": len(group),
             "promedio_litros_carga": round(float(group["litros"].mean()), 2) if "litros" in group.columns else 0,
             "promedio_monto_carga": round(float(group["monto"].mean()), 0) if "monto" in group.columns else 0,
+            "precio_unitario_promedio": round(float(group["precio_unitario"].mean()), 1) if "precio_unitario" in group.columns and group["precio_unitario"].sum() > 0 else 0,
         }
 
         # Si hay datos de departamento
@@ -224,12 +229,18 @@ def process_vehicle_data(df):
 
         # Si hay datos de kilometraje, calcular rendimiento
         if "kilometraje" in group.columns:
-            km_values = group["kilometraje"].dropna().sort_values()
+            km_values = pd.to_numeric(group["kilometraje"], errors="coerce").dropna().sort_values()
             if len(km_values) >= 2:
                 km_recorridos = float(km_values.iloc[-1] - km_values.iloc[0])
                 if km_recorridos > 0 and vehicle_data["total_litros"] > 0:
                     vehicle_data["km_recorridos"] = round(km_recorridos, 0)
                     vehicle_data["rendimiento_km_litro"] = round(km_recorridos / vehicle_data["total_litros"], 2)
+
+        # Si Copec provee rendimiento directamente
+        if "rendimiento" in group.columns and "rendimiento_km_litro" not in vehicle_data:
+            rend_values = pd.to_numeric(group["rendimiento"], errors="coerce").dropna()
+            if len(rend_values) > 0:
+                vehicle_data["rendimiento_km_litro"] = round(float(rend_values.mean()), 2)
 
         # Estaciones frecuentes
         if "estacion" in group.columns:
