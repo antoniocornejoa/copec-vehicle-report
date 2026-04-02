@@ -19,8 +19,9 @@ EMAIL_PASSWORD = os.environ.get("EMAIL_PASSWORD", "")  # App password para Gmail
 OUTPUT_DIR = os.environ.get("OUTPUT_DIR", "data")
 
 # Palabras clave para identificar el correo de Copec
-COPEC_SENDERS = ["copec", "cuponelectronico", "noreply"]
-COPEC_SUBJECTS = ["transacciones", "descarga", "reporte", "copec"]
+# Nota: NO incluir "noreply" solo, ya que matchea con noreply@google.com etc.
+COPEC_SENDERS = ["copec", "cuponelectronico"]
+COPEC_SUBJECTS = ["transacciones", "descarga", "copec", "cupon"]
 
 
 def connect_imap():
@@ -69,15 +70,25 @@ def search_copec_email(mail, max_retries=10, wait_seconds=60):
                     decoded_subject += part
             decoded_subject_lower = decoded_subject.lower()
 
-            # Verificar si es de Copec
-            is_copec = any(kw in from_header for kw in COPEC_SENDERS)
-            has_subject = any(kw in decoded_subject_lower for kw in COPEC_SUBJECTS)
+            # Verificar si es de Copec (remitente O asunto debe contener "copec")
+            is_copec_sender = any(kw in from_header for kw in COPEC_SENDERS)
+            has_copec_subject = any(kw in decoded_subject_lower for kw in COPEC_SUBJECTS)
 
-            if is_copec or has_subject:
-                print(f"[OK] Correo encontrado: '{decoded_subject}' de {from_header}")
+            # Verificar si tiene adjunto Excel
+            has_excel = False
+            for part in msg.walk():
+                fname = part.get_filename()
+                if fname and any(fname.lower().endswith(ext) for ext in (".xlsx", ".xls", ".csv")):
+                    has_excel = True
+                    break
+
+            if (is_copec_sender or has_copec_subject) and has_excel:
+                print(f"[OK] Correo de Copec con Excel encontrado: '{decoded_subject}' de {from_header}")
                 return msg
+            elif is_copec_sender or has_copec_subject:
+                print(f"[DEBUG] Correo de Copec sin Excel: '{decoded_subject}' de {from_header}")
 
-        print(f"[WAIT] Correo de Copec no encontrado aún. Esperando {wait_seconds}s...")
+        print(f"[WAIT] Correo de Copec con Excel no encontrado aún. Esperando {wait_seconds}s...")
         time.sleep(wait_seconds)
 
     print("[ERROR] No se encontró el correo de Copec después de todos los reintentos.")
