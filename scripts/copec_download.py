@@ -36,27 +36,32 @@ async def login(page):
     print("[OK] Login exitoso.")
 
 
-async def navigate_to_download(page):
-    """Navega a la página de Descarga Transacciones por Departamento."""
-    print("[INFO] Navegando a Descarga Transacciones por Departamento...")
-    await page.goto(DOWNLOAD_URL, wait_until="networkidle", timeout=30000)
+async def navigate_to_download(page, max_retries=3):
+    """Navega a la página de Descarga Transacciones por Departamento con reintentos."""
+    for attempt in range(1, max_retries + 1):
+        try:
+            print(f"[INFO] Navegando a Descarga Transacciones (intento {attempt}/{max_retries})...")
+            await page.goto(DOWNLOAD_URL, wait_until="networkidle", timeout=30000)
 
-    # Esperar extra para que ASP.NET WebForms termine de renderizar
-    await page.wait_for_timeout(3000)
+            # Esperar extra para que ASP.NET WebForms termine de renderizar
+            await page.wait_for_timeout(3000)
 
-    # Screenshot de debug para ver el estado de la página
-    await page.screenshot(path="data/debug_download_page.png")
-    print("[DEBUG] Screenshot de página de descarga guardado.")
+            # Verificar que la página cargó correctamente
+            page_text = await page.text_content('body')
+            if 'Descarga Transacciones' in (page_text or '') or 'Ingrese Email' in (page_text or ''):
+                print("[OK] Página de descarga cargada correctamente.")
+                await page.screenshot(path="data/debug_download_page.png")
+                return
+            else:
+                print(f"[WARN] Página puede no haber cargado bien. Título: {await page.title()}")
 
-    # Verificar que la página cargó correctamente buscando elementos clave
-    page_text = await page.text_content('body')
-    if 'Descarga Transacciones' in (page_text or ''):
-        print("[OK] Página de descarga cargada correctamente.")
-    else:
-        print(f"[WARN] Página puede no haber cargado bien. Título: {await page.title()}")
-        # Imprimir parte del HTML para debug
-        html_snippet = await page.evaluate('document.body.innerHTML.substring(0, 1000)')
-        print(f"[DEBUG] HTML snippet: {html_snippet}")
+        except Exception as e:
+            print(f"[WARN] Intento {attempt} falló: {e}")
+            if attempt < max_retries:
+                print(f"[INFO] Esperando 5s antes de reintentar...")
+                await page.wait_for_timeout(5000)
+            else:
+                raise Exception(f"No se pudo cargar la página de descarga después de {max_retries} intentos: {e}")
 
 
 async def configure_and_download(page):
