@@ -126,28 +126,52 @@ def load_data(filepath):
             except Exception as e:
                 print(f"[DEBUG] Engine {desc} falló: {e}")
 
-        # Si ningún engine Excel funcionó, intentar como HTML
-        # (algunos sistemas exportan archivos .xls que son HTML)
+        # Si ningún engine Excel funcionó, intentar como texto (TSV/CSV)
+        # Copec envía archivos .xlsx que son en realidad texto delimitado por tabs
+        if df is None:
+            print("[INFO] Intentando leer como archivo de texto (TSV/CSV)...")
+            for encoding in ["utf-8", "latin-1", "cp1252"]:
+                for sep in ["\t", ",", ";"]:
+                    try:
+                        # Copec puede tener líneas de encabezado antes de los datos
+                        # Leer las primeras líneas para detectar dónde empiezan los datos
+                        with open(filepath, "r", encoding=encoding) as f:
+                            lines = f.readlines()
+
+                        # Buscar la línea que tiene los encabezados de columnas
+                        header_row = 0
+                        for i, line in enumerate(lines[:10]):
+                            if any(kw in line.upper() for kw in ["PATENTE", "RUT", "FECHA", "LITRO", "DEPTO", "DEPARTAMENTO"]):
+                                header_row = i
+                                break
+
+                        df = pd.read_csv(filepath, sep=sep, encoding=encoding,
+                                        skiprows=header_row, header=0)
+                        if len(df.columns) > 3:
+                            print(f"[OK] Archivo leído como texto ({encoding}, sep='{repr(sep)}', skiprows={header_row})")
+                            print(f"[DEBUG] Columnas: {list(df.columns)}")
+                            break
+                        else:
+                            df = None
+                    except Exception:
+                        df = None
+                if df is not None:
+                    break
+
+        # Si aún no funcionó, intentar como HTML
         if df is None:
             try:
-                dfs = pd.read_html(filepath, encoding="utf-8")
+                dfs = pd.read_html(filepath, encoding="latin-1")
                 if dfs:
                     df = dfs[0]
-                    print("[OK] Archivo leído como HTML (tabla disfrazada de Excel)")
-            except Exception:
-                try:
-                    dfs = pd.read_html(filepath, encoding="latin-1")
-                    if dfs:
-                        df = dfs[0]
-                        print("[OK] Archivo leído como HTML (encoding latin-1)")
-                except Exception as e:
-                    print(f"[ERROR] No se pudo leer el archivo: {e}")
+                    print("[OK] Archivo leído como HTML")
+            except Exception as e:
+                print(f"[DEBUG] HTML falló: {e}")
 
         if df is None:
-            # Último intento: leer los primeros bytes para diagnosticar
             with open(filepath, "rb") as f:
-                header = f.read(100)
-            print(f"[DEBUG] Primeros bytes del archivo: {header[:50]}")
+                header = f.read(200)
+            print(f"[DEBUG] Primeros bytes del archivo: {header}")
             print(f"[ERROR] No se pudo leer el archivo con ningún método.")
             sys.exit(1)
 
