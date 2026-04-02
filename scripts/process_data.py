@@ -106,11 +106,50 @@ def load_data(filepath):
                 except Exception:
                     continue
     else:
-        # Intentar leer como Excel, probando diferentes hojas
-        try:
-            df = pd.read_excel(filepath, sheet_name=0)
-        except Exception:
-            df = pd.read_excel(filepath, sheet_name=0, engine="openpyxl")
+        # Intentar leer como Excel con diferentes engines
+        # Copec a veces envía archivos .xlsx que son en realidad XLS antiguo o HTML
+        df = None
+        engines_to_try = [
+            ("openpyxl", "xlsx moderno"),
+            ("xlrd", "xls antiguo"),
+            (None, "auto-detect"),
+        ]
+
+        for engine, desc in engines_to_try:
+            try:
+                kwargs = {"sheet_name": 0}
+                if engine:
+                    kwargs["engine"] = engine
+                df = pd.read_excel(filepath, **kwargs)
+                print(f"[OK] Archivo leído con engine: {desc}")
+                break
+            except Exception as e:
+                print(f"[DEBUG] Engine {desc} falló: {e}")
+
+        # Si ningún engine Excel funcionó, intentar como HTML
+        # (algunos sistemas exportan archivos .xls que son HTML)
+        if df is None:
+            try:
+                dfs = pd.read_html(filepath, encoding="utf-8")
+                if dfs:
+                    df = dfs[0]
+                    print("[OK] Archivo leído como HTML (tabla disfrazada de Excel)")
+            except Exception:
+                try:
+                    dfs = pd.read_html(filepath, encoding="latin-1")
+                    if dfs:
+                        df = dfs[0]
+                        print("[OK] Archivo leído como HTML (encoding latin-1)")
+                except Exception as e:
+                    print(f"[ERROR] No se pudo leer el archivo: {e}")
+
+        if df is None:
+            # Último intento: leer los primeros bytes para diagnosticar
+            with open(filepath, "rb") as f:
+                header = f.read(100)
+            print(f"[DEBUG] Primeros bytes del archivo: {header[:50]}")
+            print(f"[ERROR] No se pudo leer el archivo con ningún método.")
+            sys.exit(1)
 
     print(f"[INFO] Datos cargados: {len(df)} filas, {len(df.columns)} columnas")
     print(f"[INFO] Columnas originales: {list(df.columns)}")
