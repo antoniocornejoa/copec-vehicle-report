@@ -1,7 +1,7 @@
 """
 Automatización de descarga de transacciones desde Cupón Electrónico Copec.
 Usa Playwright para navegar el sitio, solicitar el reporte y enviarlo por email.
-IDs de elementos obtenidos directamente de la página real de Copec.
+Navega a través del menú (Informes > Descarga Transacciones) en vez de URL directa.
 """
 
 import asyncio
@@ -15,7 +15,6 @@ COPEC_RUT = os.environ.get("COPEC_RUT", "")
 COPEC_PASSWORD = os.environ.get("COPEC_PASSWORD", "")
 REPORT_EMAIL = os.environ.get("REPORT_EMAIL", "acornejo@cindependencia.cl")
 COPEC_URL = "https://cuponelectronico.copec.cl/default.aspx"
-DOWNLOAD_URL = "https://cuponelectronico.copec.cl/VistasCte/cteBajarInfo.aspx"
 
 
 async def login(page):
@@ -23,7 +22,6 @@ async def login(page):
     print(f"[INFO] Navegando a {COPEC_URL}...")
     await page.goto(COPEC_URL, wait_until="networkidle", timeout=60000)
 
-    # Campos de login con IDs exactos de la página Copec
     rut_input = page.locator('#TxbRutSA')
     pass_input = page.locator('#TxbClaveSA')
     login_btn = page.locator('#Button1')
@@ -33,35 +31,75 @@ async def login(page):
     await login_btn.click()
 
     await page.wait_for_load_state("networkidle", timeout=30000)
-    print("[OK] Login exitoso.")
+    await page.wait_for_timeout(2000)
+
+    # Verificar login exitoso - debe haber un menú de navegación
+    title = await page.title()
+    print(f"[OK] Login exitoso. Título: {title}")
+    await page.screenshot(path="data/debug_after_login.png")
 
 
-async def navigate_to_download(page, max_retries=3):
-    """Navega a la página de Descarga Transacciones por Departamento con reintentos."""
-    for attempt in range(1, max_retries + 1):
-        try:
-            print(f"[INFO] Navegando a Descarga Transacciones (intento {attempt}/{max_retries})...")
-            await page.goto(DOWNLOAD_URL, wait_until="networkidle", timeout=30000)
+async def navigate_to_download(page):
+    """Navega a Descarga Transacciones via menú Informes."""
+    print("[INFO] Navegando via menú: Informes > Descarga Transacciones...")
 
-            # Esperar extra para que ASP.NET WebForms termine de renderizar
-            await page.wait_for_timeout(3000)
+    # Buscar el menú "Informes" y hacer hover para desplegar
+    informes_menu = page.locator('a:has-text("Informes"), li:has-text("Informes") > a').first
+    await informes_menu.hover()
+    await page.wait_for_timeout(1000)
 
-            # Verificar que la página cargó correctamente
-            page_text = await page.text_content('body')
-            if 'Descarga Transacciones' in (page_text or '') or 'Ingrese Email' in (page_text or ''):
-                print("[OK] Página de descarga cargada correctamente.")
-                await page.screenshot(path="data/debug_download_page.png")
-                return
-            else:
-                print(f"[WARN] Página puede no haber cargado bien. Título: {await page.title()}")
+    # Buscar el submenú "Descarga Transacciones por Departamento"
+    # Intentar varias formas de encontrar el link
+    download_link = None
+    selectors = [
+        'a:has-text("Descarga Transacciones")',
+        'a:has-text("Bajar Info")',
+        'a[href*="cteBajarInfo"]',
+        'a[href*="BajarInfo"]',
+    ]
 
-        except Exception as e:
-            print(f"[WARN] Intento {attempt} falló: {e}")
-            if attempt < max_retries:
-                print(f"[INFO] Esperando 5s antes de reintentar...")
-                await page.wait_for_timeout(5000)
-            else:
-                raise Exception(f"No se pudo cargar la página de descarga después de {max_retries} intentos: {e}")
+    for sel in selectors:
+        loc = page.locator(sel)
+        count = await loc.count()
+        if count > 0:
+            download_link = loc.first
+            print(f"[DEBUG] Encontrado con selector: {sel}")
+            break
+
+    if download_link is None:
+        # Tomar screenshot del menú desplegado para debug
+        await page.screenshot(path="data/debug_menu_informes.png")
+        # Listar todos los links visibles para debug
+        all_links = await page.evaluate('''() => {
+            return Array.from(document.querySelectorAll('a')).map(a => ({
+                text: a.textContent.trim().substring(0, 50),
+                href: a.href,
+                visible: a.offsetParent !== null
+            })).filter(a => a.visible && a.text.length > 0);
+        }''')
+        print(f"[DEBUG] Links visibles ({len(all_links)}):")
+        for link in all_links:
+            print(f"  - '{link['text']}' -> {link['href']}")
+        raise Exception("No se encontró el link de Descarga Transacciones en el menú")
+
+    await download_link.click()
+    await page.wait_for_load_state("networkidle", timeout=30000)
+    await page.wait_for_timeout(3000)
+
+    # Verificar que estamos en la página correcta
+    page_text = await page.text_content('body') or ''
+    title = await page.title()
+
+    if 'Descarga Transacciones' in page_text or 'Ingrese Email' in page_text or 'DESCARGAR' in page_text:
+        print("[OK] Página de descarga cargada correctamente.")
+    else:
+        await page.screenshot(path="data/debug_wrong_page.png")
+        print(f"[WARN] Página puede no haber cargado bien. Título: {title}")
+        # Imprimir snippet del HTML
+        snippet = await page.evaluate('document.body.innerText.substring(0, 500)')
+        print(f"[DEBUG] Contenido: {snippet}")
+
+    await page.screenshot(path="data/debug_download_page.png")
 
 
 async def configure_and_download(page):
@@ -75,27 +113,22 @@ async def configure_and_download(page):
     month_label = f"{month_map[now.month]} {now.year}"
     print(f"[INFO] Configurando descarga para: {month_label}")
 
-    # 1. Tipo de Informe: "Consumos" (radio button)
+    # 1. Tipo de Informe: "Consumos" (radio button, generalmente ya seleccionado)
     consumos_radio = page.locator('#ctl00_CpH1_TipInforme_0')
-    if await consumos_radio.is_visible():
-        await consumos_radio.check()
-        print("[OK] Tipo Informe: Consumos seleccionado.")
+    if await consumos_radio.count() > 0:
+        try:
+            await consumos_radio.check(timeout=5000)
+            print("[OK] Tipo Informe: Consumos")
+        except:
+            print("[WARN] No se pudo marcar radio Consumos, puede estar ya seleccionado.")
     else:
-        print("[WARN] Radio Consumos no visible, puede estar ya seleccionado.")
+        print("[WARN] Radio Consumos no encontrado.")
 
     await page.wait_for_timeout(1000)
-
-    # 2. Producto: dejar "Todos los productos" por defecto
     print(f"[OK] Mes Inicio/Final: {month_label} (por defecto)")
 
-    # 3. Ingresar email - probar ambos campos posibles
-    # La página tiene txbEmail (visible con Consumos) y txbEmail1 (visible con Estado de Cuenta)
+    # 2. Ingresar email - probar ambos campos
     email_filled = False
-
-    # Listar todos los inputs de texto para debug
-    input_count = await page.locator('input[type="text"]').count()
-    print(f"[DEBUG] Total inputs tipo text en la página: {input_count}")
-
     for input_id in ['ctl00_CpH1_txbEmail', 'ctl00_CpH1_txbEmail1']:
         try:
             field = page.locator(f'#{input_id}')
@@ -104,81 +137,83 @@ async def configure_and_download(page):
                 email_filled = True
                 print(f"[OK] Email ingresado en #{input_id}: {REPORT_EMAIL}")
                 break
-            else:
-                print(f"[DEBUG] #{input_id} existe pero no es visible.")
-        except Exception as e:
-            print(f"[DEBUG] #{input_id} no disponible: {e}")
+        except:
+            continue
 
     if not email_filled:
-        # Último recurso: buscar cualquier input cerca del texto "Email"
-        print("[WARN] Ningún campo email encontrado por ID. Buscando por label...")
-        try:
-            email_field = page.locator('input[type="text"]').filter(has=page.locator('xpath=..').filter(has_text="Email"))
-            if await email_field.count() == 0:
-                # Intentar con JavaScript directo
-                await page.evaluate(f'''() => {{
-                    const inputs = document.querySelectorAll('input[type="text"]');
-                    for (const inp of inputs) {{
-                        if (inp.id.toLowerCase().includes('email')) {{
-                            inp.value = "{REPORT_EMAIL}";
-                            inp.dispatchEvent(new Event('change', {{ bubbles: true }}));
-                            return true;
-                        }}
-                    }}
-                    return false;
-                }}''')
-                print(f"[OK] Email ingresado via JavaScript: {REPORT_EMAIL}")
-                email_filled = True
-        except Exception as e:
-            print(f"[ERROR] No se pudo ingresar email: {e}")
+        # JavaScript fallback
+        result = await page.evaluate(f'''() => {{
+            const inputs = document.querySelectorAll('input[type="text"]');
+            for (const inp of inputs) {{
+                if (inp.id.toLowerCase().includes('email')) {{
+                    inp.value = "{REPORT_EMAIL}";
+                    inp.dispatchEvent(new Event('change', {{ bubbles: true }}));
+                    inp.dispatchEvent(new Event('input', {{ bubbles: true }}));
+                    return inp.id;
+                }}
+            }}
+            return null;
+        }}''')
+        if result:
+            print(f"[OK] Email ingresado via JavaScript en #{result}: {REPORT_EMAIL}")
+            email_filled = True
+        else:
+            await page.screenshot(path="data/debug_no_email_field.png")
+            raise Exception("No se encontró ningún campo de email en la página")
 
-    if not email_filled:
-        # Screenshot para debug y continuar de todas formas
-        await page.screenshot(path="data/debug_email_error.png")
-        print("[ERROR] No se encontró campo de email. Screenshot guardado.")
-
-    # 4. Marcar checkbox "Seleccionar Todos" los departamentos
+    # 3. Marcar departamentos
     select_all_cb = page.locator('#ctl00_CpH1_radGBajarInfo_ctl00_ctl02_ctl02_chkSelectAll')
-    if await select_all_cb.is_visible():
+    if await select_all_cb.count() > 0 and await select_all_cb.is_visible(timeout=3000):
         await select_all_cb.check()
         print("[OK] Todos los departamentos seleccionados.")
     else:
-        # Fallback: marcar checkboxes individuales
+        # Marcar checkboxes individuales
         checkboxes = page.locator('input[type="checkbox"][id*="chkSelect"]')
         count = await checkboxes.count()
-        for i in range(count):
-            cb = checkboxes.nth(i)
-            if await cb.is_visible():
-                await cb.check()
-        print(f"[OK] {count} departamentos seleccionados.")
+        if count > 0:
+            for i in range(count):
+                cb = checkboxes.nth(i)
+                if await cb.is_visible():
+                    await cb.check()
+            print(f"[OK] {count} departamentos seleccionados.")
+        else:
+            print("[WARN] No se encontraron checkboxes de departamentos.")
 
     await page.wait_for_timeout(500)
 
-    # 5. Click en "DESCARGAR"
+    # 4. Click en DESCARGAR
+    descargar_clicked = False
     descargar_btn = page.locator('#ctl00_CpH1_btnAceptar')
-    if await descargar_btn.is_visible():
+    if await descargar_btn.count() > 0 and await descargar_btn.is_visible(timeout=3000):
         await descargar_btn.click()
-        print("[OK] Solicitud de descarga enviada. El reporte será enviado al email.")
+        descargar_clicked = True
+        print("[OK] Botón DESCARGAR clickeado.")
     else:
-        # Fallback: buscar link con texto Descargar
+        # Fallback: buscar por texto
         alt_btn = page.locator('a:has-text("Descargar"), a:has-text("DESCARGAR")')
         if await alt_btn.count() > 0:
             await alt_btn.first.click()
+            descargar_clicked = True
             print("[OK] Descarga solicitada (botón alternativo).")
-        else:
-            print("[ERROR] Botón DESCARGAR no encontrado.")
 
-    # Esperar confirmación
+    if not descargar_clicked:
+        await page.screenshot(path="data/debug_no_descargar.png")
+        raise Exception("Botón DESCARGAR no encontrado. La descarga NO se ejecutó.")
+
+    # Esperar que procese la solicitud
     await page.wait_for_timeout(5000)
     await page.screenshot(path="data/debug_after_download.png")
     print("[DEBUG] Screenshot post-descarga guardado.")
+    print("[OK] Solicitud de descarga enviada. El reporte será enviado al email.")
 
 
 async def main():
     """Función principal de automatización."""
     if not COPEC_RUT or not COPEC_PASSWORD:
-        print("[ERROR] Credenciales no configuradas. Configura COPEC_RUT y COPEC_PASSWORD.")
+        print("[ERROR] Credenciales no configuradas.")
         sys.exit(1)
+
+    os.makedirs("data", exist_ok=True)
 
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=True)
@@ -192,15 +227,14 @@ async def main():
             await login(page)
             await navigate_to_download(page)
             await configure_and_download(page)
-            print("\n[DONE] Proceso completado. Espera ~5 minutos para recibir el correo.")
+            print("\n[DONE] Proceso completado exitosamente.")
         except Exception as e:
-            print(f"[ERROR] {e}")
-            await page.screenshot(path="data/error_screenshot.png")
-            print("[DEBUG] Screenshot de error guardado en data/error_screenshot.png")
-            # Imprimir HTML para debug
+            print(f"\n[ERROR] {e}")
             try:
-                html = await page.evaluate('document.body.innerHTML.substring(0, 2000)')
-                print(f"[DEBUG] HTML: {html}")
+                await page.screenshot(path="data/error_screenshot.png")
+                print("[DEBUG] Screenshot de error guardado.")
+                html = await page.evaluate('document.body.innerText.substring(0, 1000)')
+                print(f"[DEBUG] Contenido página: {html}")
             except:
                 pass
             sys.exit(1)
