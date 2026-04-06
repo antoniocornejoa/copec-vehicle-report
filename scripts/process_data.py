@@ -406,4 +406,12 @@ def main():
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(report_data, f, ensure_ascii=False, indent=2)
 
-    print
+    print(f"\n[OK] Reporte generado: {output_path}")
+    print(f"  - Vehículos: {summary['total_vehiculos']}")
+    print(f"  - Total litros: {summary['total_litros']}")
+    print(f"  - Total monto: ${summary['total_monto']:,.0f}")
+    print(f"  - Periodo: {summary['periodo']}")
+
+
+if __name__ == "__main__":
+    main()
