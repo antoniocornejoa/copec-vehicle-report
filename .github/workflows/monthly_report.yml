@@ -69,6 +69,7 @@ jobs:
       - name: Recuperar archivo de email
         if: ${{ github.event.inputs.skip_email != 'true' }}
         env:
+          PYTHONUNBUFFERED: '1'
           IMAP_SERVER: ${{ secrets.IMAP_SERVER }}
           IMAP_PORT: ${{ secrets.IMAP_PORT }}
           EMAIL_USER: ${{ secrets.EMAIL_USER }}
@@ -79,6 +80,7 @@ jobs:
       # 7. Procesar datos del Excel
       - name: Procesar datos
         env:
+          PYTHONUNBUFFERED: '1'
           DATA_DIR: data
           OUTPUT_DIR: data
         run: python scripts/process_data.py
