@@ -1,9 +1,9 @@
 name: Reporte Mensual Rendimiento Vehicular
 
 on:
-  # Ejecución automática: día 2 de cada mes a las 9:00 AM Chile (UTC-3 en verano, UTC-4 en invierno)
+  # Ejecución automática: todos los días a las 18:00 Chile (22:00 UTC en invierno, 21:00 UTC en verano)
   schedule:
-    - cron: '0 13 2 * *'  # 13:00 UTC = ~09:00-10:00 Chile
+    - cron: '0 22 * * *'  # 22:00 UTC = 18:00 Chile (CLT, UTC-4)
 
   # Ejecución manual desde GitHub
   workflow_dispatch:

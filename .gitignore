@@ -1,7 +1,8 @@
-# Data files (except processed JSON)
+# Data files (except processed JSON y archivo Copec raw)
 data/*.xlsx
 data/*.xls
 data/*.csv
+!data/COPEC_CE.XLS
 data/latest_file.txt
 data/error_screenshot.png
 
