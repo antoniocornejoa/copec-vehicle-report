@@ -34,15 +34,12 @@ def find_excel_file(data_dir="data"):
             if os.path.exists(path):
                 return path
 
-    # Buscar archivos Excel en el directorio
-    patterns = [
-        os.path.join(data_dir, "*.xlsx"),
-        os.path.join(data_dir, "*.xls"),
-        os.path.join(data_dir, "*.csv"),
-    ]
+    # Buscar archivos Excel en el directorio (case-insensitive para .XLS/.xls)
     files = []
-    for pattern in patterns:
-        files.extend(glob.glob(pattern))
+    if os.path.isdir(data_dir):
+        for f in os.listdir(data_dir):
+            if f.lower().endswith((".xlsx", ".xls", ".csv")):
+                files.append(os.path.join(data_dir, f))
 
     if not files:
         print(f"[ERROR] No se encontraron archivos Excel en '{data_dir}/'")

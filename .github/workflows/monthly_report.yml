@@ -65,9 +65,11 @@ jobs:
           echo "Esperando 5 minutos para que Copec envie el correo..."
           sleep 300
 
-      # 6. Recuperar archivo del correo
+      # 6. Recuperar archivo del correo (con fallback a archivo existente)
       - name: Recuperar archivo de email
+        id: fetch_email
         if: ${{ github.event.inputs.skip_email != 'true' }}
+        continue-on-error: true
         env:
           PYTHONUNBUFFERED: '1'
           IMAP_SERVER: ${{ secrets.IMAP_SERVER }}
@@ -76,6 +78,23 @@ jobs:
           EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
           OUTPUT_DIR: data
         run: python scripts/fetch_email.py
+
+      # 6b. Verificar que hay archivo de datos disponible
+      - name: Verificar archivo de datos
+        env:
+          PYTHONUNBUFFERED: '1'
+        run: |
+          # Buscar archivos de datos Copec (.xls, .xlsx, .csv)
+          DATA_FILE=$(find data/ -maxdepth 1 -iname "*.xls" -o -iname "*.xlsx" -o -iname "*.csv" 2>/dev/null | head -1)
+          if [ -n "$DATA_FILE" ]; then
+            echo "[OK] Archivo de datos encontrado: $DATA_FILE ($(stat -c%s "$DATA_FILE") bytes)"
+            echo "DATA_FILE=$DATA_FILE" >> $GITHUB_ENV
+          else
+            echo "[ERROR] No hay archivo de datos Copec disponible."
+            echo "  - El email de Copec no llegó y no hay archivo previo en data/"
+            echo "  - Opciones: re-ejecutar más tarde o subir archivo manualmente"
+            exit 1
+          fi
 
       # 7. Procesar datos del Excel
       - name: Procesar datos
@@ -92,12 +111,14 @@ jobs:
           OUTPUT_DIR: docs
         run: python scripts/generate_report.py
 
-      # 9. Commit y push del reporte generado
+      # 9. Commit y push del reporte generado (incluye archivo Copec raw)
       - name: Commit reporte
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
+          # Guardar también el archivo Copec raw para futuras ejecuciones con skip
           git add docs/ data/report_data.json
+          git add data/*.xls data/*.xlsx data/*.csv 2>/dev/null || true
           git diff --staged --quiet || git commit -m "Actualizar reporte rendimiento vehicular - $(date '+%Y-%m-%d')"
           git push
 
