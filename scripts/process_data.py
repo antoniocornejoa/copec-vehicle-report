@@ -197,7 +197,23 @@ def process_vehicle_data(df):
     # Limpiar datos numéricos
     for col in ["litros", "monto", "kilometraje", "rendimiento", "precio_unitario"]:
         if col in df.columns:
+            # Debug: mostrar valores crudos antes de convertir
+            raw_vals = df[col].head(5).tolist()
+            print(f"[DEBUG] {col} valores crudos: {raw_vals} (tipo: {df[col].dtype})")
+            # Limpiar: quitar espacios y convertir formato chileno (1.234,56 → 1234.56)
+            df[col] = df[col].astype(str).str.strip()
+            # Si tiene coma, asumir formato chileno: quitar puntos de miles, coma→punto decimal
+            def clean_number(val):
+                val = str(val).strip()
+                if val in ("", "nan", "None", "-"):
+                    return "0"
+                if "," in val:
+                    # Formato chileno: 1.234,56 → 1234.56
+                    val = val.replace(".", "").replace(",", ".")
+                return val
+            df[col] = df[col].apply(clean_number)
             df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0)
+            print(f"[DEBUG] {col} después de limpiar: {df[col].head(5).tolist()}")
 
     # Agrupar por vehículo (patente)
     vehicles = {}
@@ -393,15 +409,4 @@ def main():
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(report_data, f, ensure_ascii=False, indent=2)
 
-    print(f"\n[DONE] Datos procesados guardados en: {output_path}")
-    print(f"  - Vehículos: {len(vehicles)}")
-    print(f"  - Departamentos: {len(departments)}")
-    print(f"  - Período: {summary['periodo']}")
-    print(f"  - Total litros: {summary['total_litros']:,.2f}")
-    print(f"  - Total monto: ${summary['total_monto']:,.0f}")
-
-    return report_data
-
-
-if __name__ == "__main__":
-    main()
+    print
