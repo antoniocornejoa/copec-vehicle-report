@@ -1,18 +1,18 @@
 {
   "metadata": {
-    "generado": "2026-04-17T22:51:11.885915",
+    "generado": "2026-04-18T22:46:00.533225",
     "archivo_fuente": "COPEC_CE.XLS",
-    "total_registros": 141
+    "total_registros": 142
   },
   "summary": {
     "periodo": "Abril 2026",
-    "fecha_generacion": "17/04/2026 22:51",
+    "fecha_generacion": "18/04/2026 22:46",
     "total_vehiculos": 36,
-    "total_cargas": 141,
-    "total_litros": 6193.98,
-    "total_monto": 9479330.0,
-    "promedio_litros_vehiculo": 172.05,
-    "promedio_monto_vehiculo": 263315.0
+    "total_cargas": 142,
+    "total_litros": 6245.76,
+    "total_monto": 9559330.0,
+    "promedio_litros_vehiculo": 173.49,
+    "promedio_monto_vehiculo": 265537.0
   },
   "vehicles": {
     "JJWL-60-1": {
@@ -129,17 +129,18 @@
     },
     "SGCR-15-6": {
       "patente": "SGCR-15-6",
-      "total_litros": 52.85,
-      "total_monto": 80655.0,
-      "num_cargas": 1,
-      "promedio_litros_carga": 52.85,
-      "promedio_monto_carga": 80655.0,
-      "precio_unitario_promedio": 1526.0,
+      "total_litros": 104.63,
+      "total_monto": 160655.0,
+      "num_cargas": 2,
+      "promedio_litros_carga": 52.31,
+      "promedio_monto_carga": 80328.0,
+      "precio_unitario_promedio": 1535.5,
       "departamento": "CASA MATRIZ                             ",
       "conductor": "15835054-8  ",
-      "rendimiento_km_litro": 10.91,
+      "km_recorridos": 532.0,
+      "rendimiento_km_litro": 5.08,
       "estaciones_frecuentes": {
-        "'000000000000000     ": 1
+        "'000000000000000     ": 2
       }
     },
     "SGSY-24-9": {
@@ -591,10 +592,10 @@
   "departments": [
     {
       "departamento": "CASA MATRIZ",
-      "total_litros": 6193.98,
-      "total_monto": 9479330.0,
+      "total_litros": 6245.76,
+      "total_monto": 9559330.0,
       "num_vehiculos": 36,
-      "num_cargas": 140
+      "num_cargas": 141
     }
   ],
   "daily_trend": [
@@ -666,9 +667,9 @@
     },
     {
       "fecha": "2026-04-17",
-      "litros": 493.18,
-      "monto": 768546.0,
-      "cargas": 10
+      "litros": 544.96,
+      "monto": 848546.0,
+      "cargas": 11
     }
   ],
   "top_consumers": [
