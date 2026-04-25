@@ -1,18 +1,18 @@
 {
   "metadata": {
-    "generado": "2026-04-24T22:49:06.897016",
+    "generado": "2026-04-25T22:47:38.118484",
     "archivo_fuente": "COPEC_CE.XLS",
-    "total_registros": 206
+    "total_registros": 207
   },
   "summary": {
     "periodo": "Abril 2026",
-    "fecha_generacion": "24/04/2026 22:49",
+    "fecha_generacion": "25/04/2026 22:47",
     "total_vehiculos": 39,
-    "total_cargas": 206,
-    "total_litros": 9206.49,
-    "total_monto": 14185481.0,
-    "promedio_litros_vehiculo": 236.06,
-    "promedio_monto_vehiculo": 363730.0
+    "total_cargas": 207,
+    "total_litros": 9258.0,
+    "total_monto": 14265481.0,
+    "promedio_litros_vehiculo": 237.38,
+    "promedio_monto_vehiculo": 365782.0
   },
   "vehicles": {
     "JJWL-60-1": {
@@ -50,18 +50,18 @@
     },
     "LKRJ-42-0": {
       "patente": "LKRJ-42-0",
-      "total_litros": 208.37,
-      "total_monto": 320000.0,
-      "num_cargas": 4,
-      "promedio_litros_carga": 52.09,
+      "total_litros": 259.88,
+      "total_monto": 400000.0,
+      "num_cargas": 5,
+      "promedio_litros_carga": 51.98,
       "promedio_monto_carga": 80000.0,
-      "precio_unitario_promedio": 1536.0,
+      "precio_unitario_promedio": 1539.4,
       "departamento": "CASA MATRIZ                             ",
       "conductor": "11285513-0  ",
-      "km_recorridos": 1808.0,
-      "rendimiento_km_litro": 8.68,
+      "km_recorridos": 2328.0,
+      "rendimiento_km_litro": 8.96,
       "estaciones_frecuentes": {
-        "'000000000000000     ": 4
+        "'000000000000000     ": 5
       }
     },
     "LZRC-50-4": {
@@ -640,10 +640,10 @@
   "departments": [
     {
       "departamento": "CASA MATRIZ",
-      "total_litros": 9206.49,
-      "total_monto": 14185481.0,
+      "total_litros": 9258.0,
+      "total_monto": 14265481.0,
       "num_vehiculos": 39,
-      "num_cargas": 205
+      "num_cargas": 206
     }
   ],
   "daily_trend": [
@@ -745,9 +745,9 @@
     },
     {
       "fecha": "2026-04-24",
-      "litros": 480.86,
-      "monto": 746577.0,
-      "cargas": 10
+      "litros": 532.37,
+      "monto": 826577.0,
+      "cargas": 11
     }
   ],
   "top_consumers": [
