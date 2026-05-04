@@ -104,19 +104,34 @@ jobs:
           OUTPUT_DIR: data
         run: python scripts/process_data.py
 
-      # 8. Generar reporte HTML
+      # 7b. Validar que el procesamiento generó datos reales
+      - name: Validar datos procesados
+        id: validate
+        run: |
+          LITROS=$(python3 -c "import json; d=json.load(open('data/report_data.json')); print(d['summary']['total_litros'])")
+          echo "Total litros: $LITROS"
+          if [ "$(echo "$LITROS > 0" | bc)" -eq 1 ]; then
+            echo "VALID_DATA=true" >> $GITHUB_ENV
+            echo "[OK] Datos válidos: $LITROS litros"
+          else
+            echo "VALID_DATA=false" >> $GITHUB_ENV
+            echo "[WARN] Datos con 0 litros - NO se actualizará el reporte para no perder el anterior"
+          fi
+
+      # 8. Generar reporte HTML (solo si hay datos válidos)
       - name: Generar reporte HTML
+        if: env.VALID_DATA == 'true'
         env:
           DATA_DIR: data
           OUTPUT_DIR: docs
         run: python scripts/generate_report.py
 
-      # 9. Commit y push del reporte generado (incluye archivo Copec raw)
+      # 9. Commit y push del reporte generado (solo si hay datos válidos)
       - name: Commit reporte
+        if: env.VALID_DATA == 'true'
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          # Guardar también el archivo Copec raw para futuras ejecuciones con skip
           git add docs/ data/report_data.json
           git add data/*.xls data/*.xlsx data/*.csv 2>/dev/null || true
           git diff --staged --quiet || git commit -m "Actualizar reporte rendimiento vehicular - $(date '+%Y-%m-%d')"
