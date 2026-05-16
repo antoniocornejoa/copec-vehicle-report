@@ -1,18 +1,18 @@
 {
   "metadata": {
-    "generado": "2026-05-15T23:03:55.476565",
+    "generado": "2026-05-16T22:57:53.636925",
     "archivo_fuente": "COPEC_CE.XLS",
-    "total_registros": 110
+    "total_registros": 111
   },
   "summary": {
     "periodo": "Mayo 2026",
-    "fecha_generacion": "15/05/2026 23:03",
+    "fecha_generacion": "16/05/2026 22:57",
     "total_vehiculos": 37,
-    "total_cargas": 110,
-    "total_litros": 4918.24,
-    "total_monto": 7525250.0,
-    "promedio_litros_vehiculo": 132.93,
-    "promedio_monto_vehiculo": 203385.0
+    "total_cargas": 111,
+    "total_litros": 4971.65,
+    "total_monto": 7605250.0,
+    "promedio_litros_vehiculo": 134.37,
+    "promedio_monto_vehiculo": 205547.0
   },
   "vehicles": {
     "JJWL-60-1": {
@@ -49,18 +49,18 @@
     },
     "LKRJ-42-0": {
       "patente": "LKRJ-42-0",
-      "total_litros": 104.32,
-      "total_monto": 160000.0,
-      "num_cargas": 2,
-      "promedio_litros_carga": 52.16,
+      "total_litros": 157.73,
+      "total_monto": 240000.0,
+      "num_cargas": 3,
+      "promedio_litros_carga": 52.58,
       "promedio_monto_carga": 80000.0,
-      "precio_unitario_promedio": 1534.0,
+      "precio_unitario_promedio": 1522.0,
       "departamento": "CASA MATRIZ                             ",
       "conductor": "11285513-0  ",
-      "km_recorridos": 580.0,
-      "rendimiento_km_litro": 5.56,
+      "km_recorridos": 1093.0,
+      "rendimiento_km_litro": 6.93,
       "estaciones_frecuentes": {
-        "'000000000000000     ": 2
+        "'000000000000000     ": 3
       }
     },
     "LZRC-50-4": {
@@ -601,10 +601,10 @@
   "departments": [
     {
       "departamento": "CASA MATRIZ",
-      "total_litros": 4918.24,
-      "total_monto": 7525250.0,
+      "total_litros": 4971.65,
+      "total_monto": 7605250.0,
       "num_vehiculos": 37,
-      "num_cargas": 109
+      "num_cargas": 110
     }
   ],
   "daily_trend": [
@@ -673,6 +673,12 @@
       "litros": 561.05,
       "monto": 846527.0,
       "cargas": 13
+    },
+    {
+      "fecha": "2026-05-16",
+      "litros": 53.41,
+      "monto": 80000.0,
+      "cargas": 1
     }
   ],
   "top_consumers": [
