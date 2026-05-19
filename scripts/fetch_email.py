@@ -41,21 +41,28 @@ def connect_imap():
     return mail
 
 
-def search_copec_email(mail, max_retries=15, wait_seconds=60):
+def search_copec_emails(mail, fetch_all=False, max_retries=15, wait_seconds=60):
     """
-    Busca el correo de Copec con el reporte adjunto.
-    Optimizado: usa IMAP SEARCH por remitente/asunto antes de descargar emails completos.
-    Reintenta varias veces esperando a que llegue el correo.
+    Busca correos de Copec con reportes adjuntos.
+    Si fetch_all=True, retorna TODOS los correos con adjuntos (para acumular historial).
+    Si fetch_all=False, retorna solo el más reciente (comportamiento original).
     """
     mail.select("INBOX")
 
-    for attempt in range(1, max_retries + 1):
-        print(f"\n[INFO] Intento {attempt}/{max_retries} - Buscando correo de Copec...")
-
-        # Buscar correos recientes (últimos 3 días para más margen)
+    # Si buscamos todo el historial, buscar desde enero 2026
+    if fetch_all:
+        date_since = "01-Jan-2026"
+        max_retries = 1  # No reintentar en modo histórico
+        print("[INFO] Modo histórico: buscando TODOS los correos de Copec desde Enero 2026...")
+    else:
         date_since = (datetime.now() - timedelta(days=3)).strftime("%d-%b-%Y")
 
-        # Estrategia 1: Buscar por remitente conocido de Copec
+    found_messages = []
+
+    for attempt in range(1, max_retries + 1):
+        if not fetch_all:
+            print(f"\n[INFO] Intento {attempt}/{max_retries} - Buscando correo de Copec...")
+
         candidate_ids = set()
         for sender_kw in COPEC_SENDERS:
             try:
@@ -67,7 +74,6 @@ def search_copec_email(mail, max_retries=15, wait_seconds=60):
             except Exception as e:
                 print(f"  [WARN] Error buscando FROM '{sender_kw}': {e}")
 
-        # Estrategia 2: Buscar por asunto
         for subject_kw in COPEC_SUBJECTS:
             try:
                 _, ids = mail.search(None, f'(SINCE "{date_since}" SUBJECT "{subject_kw}")')
@@ -79,64 +85,86 @@ def search_copec_email(mail, max_retries=15, wait_seconds=60):
                 print(f"  [WARN] Error buscando SUBJECT '{subject_kw}': {e}")
 
         if not candidate_ids:
-            print(f"[WAIT] No se encontraron correos candidatos de Copec. Esperando {wait_seconds}s...")
-            time.sleep(wait_seconds)
+            if not fetch_all:
+                print(f"[WAIT] No se encontraron correos candidatos de Copec. Esperando {wait_seconds}s...")
+                time.sleep(wait_seconds)
             continue
 
         print(f"[INFO] {len(candidate_ids)} email(s) candidato(s) encontrados. Revisando adjuntos...")
 
-        # Solo descargar los emails candidatos (no todos los 100+)
         # Revisar del más reciente al más antiguo
         sorted_ids = sorted(candidate_ids, key=lambda x: int(x), reverse=True)
 
+        # En modo historial, solo tomar 1 por mes (el más reciente de cada mes tiene datos completos)
+        seen_subjects = set()
+
         for msg_id in sorted_ids:
             try:
-                # Primero obtener solo headers para verificar
-                _, header_data = mail.fetch(msg_id, "(BODY[HEADER.FIELDS (FROM SUBJECT CONTENT-TYPE)])")
-                header_text = header_data[0][1].decode("utf-8", errors="replace").lower()
+                _, header_data = mail.fetch(msg_id, "(BODY[HEADER.FIELDS (FROM SUBJECT DATE)])")
+                header_text = header_data[0][1].decode("utf-8", errors="replace")
+                header_lower = header_text.lower()
 
-                is_copec = any(kw in header_text for kw in COPEC_SENDERS)
-                has_subject = any(kw in header_text for kw in COPEC_SUBJECTS)
-
-                if not (is_copec or has_subject):
+                is_copec = any(kw in header_lower for kw in COPEC_SENDERS)
+                if not is_copec:
                     continue
 
-                # Verificar si tiene adjunto mirando BODYSTRUCTURE (más rápido que descargar todo)
+                # Extraer subject para deduplicar por mes
+                subject_line = ""
+                for line in header_text.split("\r\n"):
+                    if line.lower().startswith("subject:"):
+                        subject_line = line[8:].strip()
+                        break
+
+                # En modo histórico, solo 1 email por periodo (ej: "Consumos Periodo May/2026")
+                if fetch_all and subject_line in seen_subjects:
+                    continue
+
+                # Verificar adjunto
                 _, struct_data = mail.fetch(msg_id, "(BODYSTRUCTURE)")
                 struct_text = struct_data[0][1].decode("utf-8", errors="replace").lower() if isinstance(struct_data[0][1], bytes) else str(struct_data[0]).lower()
 
-                has_attachment = "xlsx" in struct_text or "xls" in struct_text or "csv" in struct_text or "spreadsheet" in struct_text or "octet-stream" in struct_text
+                has_attachment = any(kw in struct_text for kw in ["xlsx", "xls", "csv", "spreadsheet", "octet-stream"])
 
                 if not has_attachment:
-                    # Decodificar subject para log
-                    print(f"  [SKIP] Email candidato sin adjunto Excel (id={msg_id.decode()})")
                     continue
 
-                # Solo ahora descargar el email completo
-                print(f"  [FETCH] Descargando email completo (id={msg_id.decode()})...")
+                # Descargar email completo
+                print(f"  [FETCH] Descargando: {subject_line} (id={msg_id.decode()})...")
                 _, msg_data = mail.fetch(msg_id, "(RFC822)")
                 raw_email = msg_data[0][1]
                 msg = email.message_from_bytes(raw_email)
 
                 # Verificar adjuntos Excel
+                has_excel = False
                 for part in msg.walk():
                     fname = part.get_filename()
                     if fname and any(fname.lower().endswith(ext) for ext in (".xlsx", ".xls", ".csv")):
-                        from_header = msg.get("From", "")
-                        subject_header = msg.get("Subject", "")
-                        decoded_subject = decode_header_str(subject_header)
-                        print(f"[OK] Correo de Copec con Excel encontrado: '{decoded_subject}' de {from_header}")
-                        return msg
+                        has_excel = True
+                        break
 
-                print(f"  [SKIP] Email descargado pero sin adjuntos Excel válidos (id={msg_id.decode()})")
+                if has_excel:
+                    seen_subjects.add(subject_line)
+                    print(f"  [OK] {subject_line}")
+
+                    if fetch_all:
+                        found_messages.append(msg)
+                    else:
+                        return msg  # Modo normal: retornar el primero encontrado
 
             except Exception as e:
                 print(f"  [WARN] Error procesando email id={msg_id.decode()}: {e}")
                 continue
 
-        print(f"[WAIT] Correo de Copec con Excel no encontrado aún. Esperando {wait_seconds}s...")
-        time.sleep(wait_seconds)
+        if fetch_all and found_messages:
+            print(f"\n[OK] {len(found_messages)} correo(s) con datos Copec encontrados")
+            return found_messages
 
+        if not fetch_all:
+            print(f"[WAIT] Correo de Copec con Excel no encontrado aún. Esperando {wait_seconds}s...")
+            time.sleep(wait_seconds)
+
+    if fetch_all:
+        return found_messages  # Puede ser lista vacía
     print("[ERROR] No se encontró el correo de Copec después de todos los reintentos.")
     return None
 
@@ -152,7 +180,7 @@ def decode_header_str(header_value):
     return decoded
 
 
-def download_attachment(msg):
+def download_attachment(msg, suffix=""):
     """Descarga el archivo Excel adjunto del correo."""
     os.makedirs(OUTPUT_DIR, exist_ok=True)
     downloaded_files = []
@@ -165,8 +193,11 @@ def download_attachment(msg):
         if filename:
             decoded_name = decode_header_str(filename)
 
-            # Solo descargar archivos Excel
             if decoded_name.lower().endswith((".xlsx", ".xls", ".csv")):
+                # Si hay suffix (para modo histórico), agregar al nombre
+                if suffix:
+                    base, ext = os.path.splitext(decoded_name)
+                    decoded_name = f"{base}_{suffix}{ext}"
                 filepath = os.path.join(OUTPUT_DIR, decoded_name)
                 with open(filepath, "wb") as f:
                     f.write(part.get_payload(decode=True))
@@ -183,23 +214,49 @@ def main():
         print("  Configura EMAIL_USER y EMAIL_PASSWORD como variables de entorno.")
         sys.exit(1)
 
+    # Modo histórico: descargar todos los correos de Copec
+    fetch_all = os.environ.get("FETCH_ALL_MONTHS", "false").lower() == "true"
+
     mail = connect_imap()
 
     try:
-        msg = search_copec_email(mail)
-        if msg:
-            files = download_attachment(msg)
-            if files:
-                print(f"\n[DONE] {len(files)} archivo(s) descargado(s) en '{OUTPUT_DIR}/'")
-                # Escribir el path del archivo principal para uso en pipeline
-                with open(os.path.join(OUTPUT_DIR, "latest_file.txt"), "w") as f:
-                    f.write(files[0])
-                return files[0]
+        if fetch_all:
+            messages = search_copec_emails(mail, fetch_all=True)
+            if messages:
+                all_files = []
+                for i, msg in enumerate(messages):
+                    subject = decode_header_str(msg.get("Subject", f"unknown_{i}"))
+                    # Extraer periodo del subject (ej: "Consumos Periodo Abr/2026" -> "Abr_2026")
+                    suffix = ""
+                    if "Periodo" in subject:
+                        period = subject.split("Periodo")[-1].strip().replace("/", "_").replace(" ", "")
+                        suffix = period
+                    else:
+                        suffix = f"msg_{i}"
+                    files = download_attachment(msg, suffix=suffix)
+                    all_files.extend(files)
+                if all_files:
+                    print(f"\n[DONE] {len(all_files)} archivo(s) descargado(s) en '{OUTPUT_DIR}/'")
+                    with open(os.path.join(OUTPUT_DIR, "latest_file.txt"), "w") as f:
+                        f.write(all_files[0])
+                    return all_files[0]
             else:
-                print("[ERROR] El correo no contenía archivos Excel adjuntos.")
+                print("[WARN] No se encontraron correos históricos de Copec.")
                 sys.exit(1)
         else:
-            sys.exit(1)
+            msg = search_copec_emails(mail, fetch_all=False)
+            if msg:
+                files = download_attachment(msg)
+                if files:
+                    print(f"\n[DONE] {len(files)} archivo(s) descargado(s) en '{OUTPUT_DIR}/'")
+                    with open(os.path.join(OUTPUT_DIR, "latest_file.txt"), "w") as f:
+                        f.write(files[0])
+                    return files[0]
+                else:
+                    print("[ERROR] El correo no contenía archivos Excel adjuntos.")
+                    sys.exit(1)
+            else:
+                sys.exit(1)
     finally:
         mail.logout()
 
