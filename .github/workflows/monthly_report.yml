@@ -18,6 +18,11 @@ on:
         required: false
         default: 'false'
         type: boolean
+      fetch_all_months:
+        description: 'Descargar TODOS los correos históricos de Copec (Ene-May 2026)'
+        required: false
+        default: 'false'
+        type: boolean
 
 # Permisos para GitHub Pages
 permissions:
@@ -77,6 +82,7 @@ jobs:
           EMAIL_USER: ${{ secrets.EMAIL_USER }}
           EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
           OUTPUT_DIR: data
+          FETCH_ALL_MONTHS: ${{ github.event.inputs.fetch_all_months || 'false' }}
         run: python scripts/fetch_email.py
 
       # 6b. Verificar que hay archivo de datos disponible
@@ -102,6 +108,7 @@ jobs:
           PYTHONUNBUFFERED: '1'
           DATA_DIR: data
           OUTPUT_DIR: data
+          PROCESS_ALL_FILES: ${{ github.event.inputs.fetch_all_months || 'false' }}
         run: python scripts/process_data.py
 
       # 7b. Validar que el procesamiento generó datos reales
@@ -132,7 +139,7 @@ jobs:
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git add docs/ data/report_data.json
+          git add docs/ data/report_data.json data/all_transactions.json
           git add data/*.xls data/*.xlsx data/*.csv 2>/dev/null || true
           git diff --staged --quiet || git commit -m "Actualizar reporte rendimiento vehicular - $(date '+%Y-%m-%d')"
           git push
