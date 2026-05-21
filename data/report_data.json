@@ -1,18 +1,18 @@
 {
   "metadata": {
-    "generado": "2026-05-20T23:21:36.500990",
+    "generado": "2026-05-21T23:11:51.858307",
     "archivo_fuente": "COPEC_CE.XLS",
-    "total_registros": 141
+    "total_registros": 143
   },
   "summary": {
     "periodo": "Mayo 2026",
-    "fecha_generacion": "20/05/2026 23:21",
+    "fecha_generacion": "21/05/2026 23:11",
     "total_vehiculos": 40,
-    "total_cargas": 141,
-    "total_litros": 6271.41,
-    "total_monto": 9577559.0,
-    "promedio_litros_vehiculo": 156.79,
-    "promedio_monto_vehiculo": 239439.0
+    "total_cargas": 143,
+    "total_litros": 6373.82,
+    "total_monto": 9733933.0,
+    "promedio_litros_vehiculo": 159.35,
+    "promedio_monto_vehiculo": 243348.0
   },
   "vehicles": {
     "JJWL-60-1": {
@@ -382,18 +382,18 @@
     },
     "SXST-77-3": {
       "patente": "SXST-77-3",
-      "total_litros": 267.16,
-      "total_monto": 406000.0,
-      "num_cargas": 8,
-      "promedio_litros_carga": 33.39,
-      "promedio_monto_carga": 50750.0,
-      "precio_unitario_promedio": 1518.2,
+      "total_litros": 317.53,
+      "total_monto": 481454.0,
+      "num_cargas": 9,
+      "promedio_litros_carga": 35.28,
+      "promedio_monto_carga": 53495.0,
+      "precio_unitario_promedio": 1516.0,
       "departamento": "CASA MATRIZ                             ",
       "conductor": "7175531-2   ",
       "km_recorridos": 52169.0,
-      "rendimiento_km_litro": 195.27,
+      "rendimiento_km_litro": 164.3,
       "estaciones_frecuentes": {
-        "'000000000000000     ": 8
+        "'000000000000000     ": 9
       }
     },
     "TBLT-24-1": {
@@ -429,18 +429,18 @@
     },
     "TBLT-26-8": {
       "patente": "TBLT-26-8",
-      "total_litros": 346.73,
-      "total_monto": 532080.0,
-      "num_cargas": 7,
-      "promedio_litros_carga": 49.53,
-      "promedio_monto_carga": 76011.0,
-      "precio_unitario_promedio": 1534.0,
+      "total_litros": 398.77,
+      "total_monto": 613000.0,
+      "num_cargas": 8,
+      "promedio_litros_carga": 49.85,
+      "promedio_monto_carga": 76625.0,
+      "precio_unitario_promedio": 1536.6,
       "departamento": "CASA MATRIZ                             ",
       "conductor": "18226720-1  ",
-      "km_recorridos": 137490.0,
-      "rendimiento_km_litro": 396.53,
+      "km_recorridos": 137987.0,
+      "rendimiento_km_litro": 346.03,
       "estaciones_frecuentes": {
-        "'000000000000000     ": 7
+        "'000000000000000     ": 8
       }
     },
     "TDTP-90-6": {
@@ -650,10 +650,10 @@
   "departments": [
     {
       "departamento": "CASA MATRIZ",
-      "total_litros": 6271.41,
-      "total_monto": 9577559.0,
+      "total_litros": 6373.82,
+      "total_monto": 9733933.0,
       "num_vehiculos": 40,
-      "num_cargas": 140
+      "num_cargas": 142
     }
   ],
   "daily_trend": [
@@ -746,6 +746,12 @@
       "litros": 354.47,
       "monto": 538641.0,
       "cargas": 9
+    },
+    {
+      "fecha": "2026-05-21",
+      "litros": 102.41,
+      "monto": 156374.0,
+      "cargas": 2
     }
   ],
   "top_consumers": [
@@ -767,18 +773,34 @@
     },
     {
       "patente": "TBLT-26-8",
-      "total_litros": 346.73,
-      "total_monto": 532080.0,
-      "num_cargas": 7,
-      "promedio_litros_carga": 49.53,
-      "promedio_monto_carga": 76011.0,
-      "precio_unitario_promedio": 1534.0,
+      "total_litros": 398.77,
+      "total_monto": 613000.0,
+      "num_cargas": 8,
+      "promedio_litros_carga": 49.85,
+      "promedio_monto_carga": 76625.0,
+      "precio_unitario_promedio": 1536.6,
       "departamento": "CASA MATRIZ                             ",
       "conductor": "18226720-1  ",
-      "km_recorridos": 137490.0,
-      "rendimiento_km_litro": 396.53,
+      "km_recorridos": 137987.0,
+      "rendimiento_km_litro": 346.03,
       "estaciones_frecuentes": {
-        "'000000000000000     ": 7
+        "'000000000000000     ": 8
+      }
+    },
+    {
+      "patente": "SXST-77-3",
+      "total_litros": 317.53,
+      "total_monto": 481454.0,
+      "num_cargas": 9,
+      "promedio_litros_carga": 35.28,
+      "promedio_monto_carga": 53495.0,
+      "precio_unitario_promedio": 1516.0,
+      "departamento": "CASA MATRIZ                             ",
+      "conductor": "7175531-2   ",
+      "km_recorridos": 52169.0,
+      "rendimiento_km_litro": 164.3,
+      "estaciones_frecuentes": {
+        "'000000000000000     ": 9
       }
     },
     {
@@ -828,22 +850,6 @@
       "rendimiento_km_litro": 8.11,
       "estaciones_frecuentes": {
         "'000000000000000     ": 6
-      }
-    },
-    {
-      "patente": "SXST-77-3",
-      "total_litros": 267.16,
-      "total_monto": 406000.0,
-      "num_cargas": 8,
-      "promedio_litros_carga": 33.39,
-      "promedio_monto_carga": 50750.0,
-      "precio_unitario_promedio": 1518.2,
-      "departamento": "CASA MATRIZ                             ",
-      "conductor": "7175531-2   ",
-      "km_recorridos": 52169.0,
-      "rendimiento_km_litro": 195.27,
-      "estaciones_frecuentes": {
-        "'000000000000000     ": 8
       }
     },
     {
