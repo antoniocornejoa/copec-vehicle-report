@@ -191,24 +191,12 @@ def process_vehicle_data(df):
         print("[WARN] Columna 'patente' no encontrada. Usando primera columna como identificador.")
         df = df.rename(columns={df.columns[0]: "patente"})
 
-    # Limpiar datos numéricos
+    # Limpiar datos numéricos (usando clean_number global para formato chileno)
     for col in ["litros", "monto", "kilometraje", "rendimiento", "precio_unitario"]:
         if col in df.columns:
-            # Debug: mostrar valores crudos antes de convertir
             raw_vals = df[col].head(5).tolist()
             print(f"[DEBUG] {col} valores crudos: {raw_vals} (tipo: {df[col].dtype})")
-            # Limpiar: quitar espacios y convertir formato chileno (1.234,56 → 1234.56)
-            df[col] = df[col].astype(str).str.strip()
-            # Si tiene coma, asumir formato chileno: quitar puntos de miles, coma→punto decimal
-            def clean_number(val):
-                val = str(val).strip()
-                if val in ("", "nan", "None", "-"):
-                    return "0"
-                if "," in val:
-                    # Formato chileno: 1.234,56 → 1234.56
-                    val = val.replace(".", "").replace(",", ".")
-                return val
-            df[col] = df[col].apply(clean_number)
+            df[col] = df[col].apply(lambda v: clean_number(v) if not isinstance(v, (int, float, np.integer, np.floating)) else round(float(v), 2))
             df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0)
             print(f"[DEBUG] {col} después de limpiar: {df[col].head(5).tolist()}")
 
@@ -371,28 +359,224 @@ def generate_top_consumers(vehicles, top_n=10):
     return sorted_vehicles[:top_n]
 
 
-def main():
-    """Función principal de procesamiento."""
-    data_dir = os.environ.get("DATA_DIR", "data")
-    output_dir = os.environ.get("OUTPUT_DIR", "data")
+def clean_number(val):
+    """Convierte número en formato chileno (1.234,56) a float estándar."""
+    val = str(val).strip()
+    if val in ("", "nan", "None", "-", "NaN", "none"):
+        return None
+    if "," in val:
+        # Formato chileno: 1.234,56 → 1234.56
+        val = val.replace(".", "").replace(",", ".")
+    try:
+        return round(float(val), 2)
+    except (ValueError, TypeError):
+        return None
 
-    filepath = find_excel_file(data_dir)
-    df = load_data(filepath)
 
-    # Procesar datos
+# Columnas que deben almacenarse como float en transacciones
+NUMERIC_TX_COLS = {"litros", "monto", "kilometraje", "rendimiento", "precio_unitario"}
+
+
+def extract_transactions(df):
+    """Extrae transacciones individuales del DataFrame para acumulación histórica.
+    IMPORTANTE: convierte números chilenos (ej: '34,98') a float ANTES de almacenar."""
+    transactions = []
+    for _, row in df.iterrows():
+        tx = {}
+        for col in ["fecha", "patente", "departamento", "estacion", "producto",
+                     "litros", "monto", "kilometraje", "conductor", "rendimiento",
+                     "precio_unitario", "hora", "tarjeta"]:
+            if col in df.columns:
+                val = row[col]
+                if pd.isna(val):
+                    tx[col] = None
+                elif col in NUMERIC_TX_COLS:
+                    # Siempre limpiar formato chileno para columnas numéricas
+                    if isinstance(val, (int, float, np.integer, np.floating)):
+                        tx[col] = round(float(val), 2)
+                    else:
+                        tx[col] = clean_number(val)
+                elif isinstance(val, (np.integer, np.floating)):
+                    tx[col] = round(float(val), 2)
+                elif isinstance(val, pd.Timestamp):
+                    tx[col] = val.strftime("%Y-%m-%d")
+                else:
+                    tx[col] = str(val).strip()
+        # Normalizar fecha ANTES de generar key
+        if tx.get("fecha"):
+            try:
+                fecha_dt = pd.to_datetime(tx["fecha"], dayfirst=True, errors="coerce")
+                if pd.notna(fecha_dt):
+                    tx["mes"] = fecha_dt.strftime("%Y-%m")
+                    tx["fecha"] = fecha_dt.strftime("%Y-%m-%d")
+            except Exception:
+                tx["mes"] = None
+        # Generar clave única para deduplicación (después de normalizar fecha y números)
+        tx["_key"] = f"{tx.get('fecha','')}__{tx.get('patente','')}__{tx.get('litros','')}__{tx.get('monto','')}__{tx.get('hora','')}"
+        transactions.append(tx)
+    return transactions
+
+
+def load_accumulated_transactions(filepath):
+    """Carga transacciones acumuladas de ejecuciones anteriores."""
+    if os.path.exists(filepath):
+        try:
+            with open(filepath, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                print(f"[INFO] Transacciones históricas cargadas: {len(data)} registros")
+                return data
+        except Exception as e:
+            print(f"[WARN] No se pudo leer historial: {e}")
+    return []
+
+
+def merge_transactions(existing, new_txs):
+    """Combina transacciones existentes con nuevas, evitando duplicados."""
+    existing_keys = {tx.get("_key") for tx in existing if tx.get("_key")}
+    added = 0
+    for tx in new_txs:
+        if tx.get("_key") and tx["_key"] not in existing_keys:
+            existing.append(tx)
+            existing_keys.add(tx["_key"])
+            added += 1
+    print(f"[INFO] Transacciones nuevas agregadas: {added}, total acumulado: {len(existing)}")
+    return existing
+
+
+def build_report_from_transactions(transactions, filter_month=None):
+    """Construye report_data a partir de transacciones (opcionalmente filtradas por mes)."""
+    if filter_month:
+        txs = [t for t in transactions if t.get("mes") == filter_month]
+    else:
+        txs = transactions
+
+    if not txs:
+        return None
+
+    # Convertir a DataFrame para reusar lógica existente
+    df = pd.DataFrame(txs)
+    for col in ["litros", "monto", "kilometraje", "rendimiento", "precio_unitario"]:
+        if col in df.columns:
+            # Limpiar formato chileno si queda alguno
+            df[col] = df[col].apply(lambda v: clean_number(v) if isinstance(v, str) else v)
+            df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0)
+    if "fecha" in df.columns:
+        df["fecha"] = pd.to_datetime(df["fecha"], errors="coerce")
+
     vehicles = process_vehicle_data(df)
     summary = generate_summary(df, vehicles)
     departments = generate_department_summary(df)
     daily_trend = generate_daily_trend(df)
     top_consumers = generate_top_consumers(vehicles)
 
-    # Generar JSON con todos los datos
+    return {
+        "summary": summary,
+        "vehicles": vehicles,
+        "departments": departments,
+        "daily_trend": daily_trend,
+        "top_consumers": top_consumers,
+    }
+
+
+def find_all_excel_files(data_dir="data"):
+    """Encuentra TODOS los archivos Excel en el directorio de datos."""
+    files = []
+    if os.path.isdir(data_dir):
+        for f in os.listdir(data_dir):
+            if f.lower().endswith((".xlsx", ".xls", ".csv")):
+                files.append(os.path.join(data_dir, f))
+    files.sort(key=os.path.getmtime)
+    return files
+
+
+def main():
+    """Función principal de procesamiento."""
+    data_dir = os.environ.get("DATA_DIR", "data")
+    output_dir = os.environ.get("OUTPUT_DIR", "data")
+    process_all = os.environ.get("PROCESS_ALL_FILES", "false").lower() == "true"
+
+    # Cargar historial existente
+    history_path = os.path.join(output_dir, "all_transactions.json")
+    accumulated = load_accumulated_transactions(history_path)
+
+    # Procesar uno o todos los archivos
+    if process_all:
+        all_files = find_all_excel_files(data_dir)
+        print(f"[INFO] Modo histórico: procesando {len(all_files)} archivo(s)...")
+        for fp in all_files:
+            print(f"\n--- Procesando: {os.path.basename(fp)} ---")
+            try:
+                df = load_data(fp)
+                new_txs = extract_transactions(df)
+                print(f"[INFO] Transacciones extraídas: {len(new_txs)}")
+                accumulated = merge_transactions(accumulated, new_txs)
+            except Exception as e:
+                print(f"[WARN] Error procesando {fp}: {e}")
+    else:
+        filepath = find_excel_file(data_dir)
+        df = load_data(filepath)
+        new_transactions = extract_transactions(df)
+        print(f"[INFO] Transacciones extraídas del archivo: {len(new_transactions)}")
+        accumulated = merge_transactions(accumulated, new_transactions)
+
+    # Guardar historial acumulado
+    os.makedirs(output_dir, exist_ok=True)
+    with open(history_path, "w", encoding="utf-8") as f:
+        json.dump(accumulated, f, ensure_ascii=False, indent=2)
+
+    # Obtener meses disponibles
+    months = sorted(set(t["mes"] for t in accumulated if t.get("mes")))
+    print(f"[INFO] Meses disponibles: {months}")
+
+    # Migrar transacciones con formato chileno antiguo (ej: "34,98" → 34.98)
+    migrated = 0
+    for tx in accumulated:
+        for col in NUMERIC_TX_COLS:
+            val = tx.get(col)
+            if isinstance(val, str):
+                tx[col] = clean_number(val)
+                migrated += 1
+        # Regenerar _key con valores limpios
+        tx["_key"] = f"{tx.get('fecha','')}__{tx.get('patente','')}__{tx.get('litros','')}__{tx.get('monto','')}__{tx.get('hora','')}"
+    if migrated > 0:
+        # Deduplicar por _key regenerado
+        seen_keys = set()
+        deduped = []
+        for tx in accumulated:
+            k = tx.get("_key", "")
+            if k not in seen_keys:
+                seen_keys.add(k)
+                deduped.append(tx)
+        removed = len(accumulated) - len(deduped)
+        accumulated = deduped
+        print(f"[INFO] Migrados {migrated} valores numéricos. Eliminados {removed} duplicados.")
+        # Re-guardar historial limpio
+        with open(history_path, "w", encoding="utf-8") as f:
+            json.dump(accumulated, f, ensure_ascii=False, indent=2)
+
+    # Construir reporte a partir de TODAS las transacciones acumuladas
+    all_df = pd.DataFrame(accumulated)
+    for col in ["litros", "monto", "kilometraje", "rendimiento", "precio_unitario"]:
+        if col in all_df.columns:
+            all_df[col] = pd.to_numeric(all_df[col], errors="coerce").fillna(0)
+    if "fecha" in all_df.columns:
+        all_df["fecha"] = pd.to_datetime(all_df["fecha"], errors="coerce")
+
+    vehicles = process_vehicle_data(all_df)
+    summary = generate_summary(all_df, vehicles)
+    departments = generate_department_summary(all_df)
+    daily_trend = generate_daily_trend(all_df)
+    top_consumers = generate_top_consumers(vehicles)
+
+    # Generar JSON con todos los datos + transacciones históricas
     report_data = {
         "metadata": {
             "generado": datetime.now().isoformat(),
-            "archivo_fuente": os.path.basename(filepath),
-            "total_registros": len(df),
+            "archivo_fuente": "acumulado_historico",
+            "total_registros": len(accumulated),
         },
+        "months_available": months,
+        "all_transactions": accumulated,
         "summary": summary,
         "vehicles": vehicles,
         "departments": departments,
@@ -401,7 +585,6 @@ def main():
     }
 
     # Guardar JSON
-    os.makedirs(output_dir, exist_ok=True)
     output_path = os.path.join(output_dir, "report_data.json")
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(report_data, f, ensure_ascii=False, indent=2)
@@ -411,6 +594,7 @@ def main():
     print(f"  - Total litros: {summary['total_litros']}")
     print(f"  - Total monto: ${summary['total_monto']:,.0f}")
     print(f"  - Periodo: {summary['periodo']}")
+    print(f"  - Meses acumulados: {', '.join(months)}")
 
 
 if __name__ == "__main__":
