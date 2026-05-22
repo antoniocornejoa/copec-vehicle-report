@@ -10479,5 +10479,39 @@
     "tarjeta": "76730086-7",
     "mes": "2026-03",
     "_key": "2026-03-31__SLCW-73-7__40.9__61629.0__14:38:54"
+  },
+  {
+    "fecha": "2026-05-22",
+    "patente": "LKRJ-38-2",
+    "departamento": "CASA MATRIZ",
+    "estacion": "'000000000000000",
+    "producto": "PDGB",
+    "litros": 51.87,
+    "monto": 80652.0,
+    "kilometraje": 195502.0,
+    "conductor": "17154739-3",
+    "rendimiento": 13.97,
+    "precio_unitario": 1555.0,
+    "hora": "07:11:08",
+    "tarjeta": "76730056-5",
+    "mes": "2026-05",
+    "_key": "2026-05-22__LKRJ-38-2__51.87__80652.0__07:11:08"
+  },
+  {
+    "fecha": "2026-05-22",
+    "patente": "TDTP-94-9",
+    "departamento": "CASA MATRIZ",
+    "estacion": "'000000000000000",
+    "producto": "PDGB",
+    "litros": 49.41,
+    "monto": 74012.0,
+    "kilometraje": 81606.0,
+    "conductor": "15138882-5",
+    "rendimiento": 7.42,
+    "precio_unitario": 1498.0,
+    "hora": "07:19:22",
+    "tarjeta": "76730102-2",
+    "mes": "2026-05",
+    "_key": "2026-05-22__TDTP-94-9__49.41__74012.0__07:19:22"
   }
 ]

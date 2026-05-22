@@ -1,8 +1,8 @@
 {
   "metadata": {
-    "generado": "2026-05-22T01:47:01.931388",
+    "generado": "2026-05-22T12:25:27.008516",
     "archivo_fuente": "acumulado_historico",
-    "total_registros": 625
+    "total_registros": 627
   },
   "months_available": [
     "2026-03",
@@ -10490,17 +10490,51 @@
       "tarjeta": "76730086-7",
       "mes": "2026-03",
       "_key": "2026-03-31__SLCW-73-7__40.9__61629.0__14:38:54"
+    },
+    {
+      "fecha": "2026-05-22",
+      "patente": "LKRJ-38-2",
+      "departamento": "CASA MATRIZ",
+      "estacion": "'000000000000000",
+      "producto": "PDGB",
+      "litros": 51.87,
+      "monto": 80652.0,
+      "kilometraje": 195502.0,
+      "conductor": "17154739-3",
+      "rendimiento": 13.97,
+      "precio_unitario": 1555.0,
+      "hora": "07:11:08",
+      "tarjeta": "76730056-5",
+      "mes": "2026-05",
+      "_key": "2026-05-22__LKRJ-38-2__51.87__80652.0__07:11:08"
+    },
+    {
+      "fecha": "2026-05-22",
+      "patente": "TDTP-94-9",
+      "departamento": "CASA MATRIZ",
+      "estacion": "'000000000000000",
+      "producto": "PDGB",
+      "litros": 49.41,
+      "monto": 74012.0,
+      "kilometraje": 81606.0,
+      "conductor": "15138882-5",
+      "rendimiento": 7.42,
+      "precio_unitario": 1498.0,
+      "hora": "07:19:22",
+      "tarjeta": "76730102-2",
+      "mes": "2026-05",
+      "_key": "2026-05-22__TDTP-94-9__49.41__74012.0__07:19:22"
     }
   ],
   "summary": {
     "periodo": "Marzo - Mayo 2026",
-    "fecha_generacion": "22/05/2026 01:47",
+    "fecha_generacion": "22/05/2026 12:25",
     "total_vehiculos": 44,
-    "total_cargas": 625,
-    "total_litros": 28978.9,
-    "total_monto": 59703919.0,
-    "promedio_litros_vehiculo": 658.61,
-    "promedio_monto_vehiculo": 1356907.0
+    "total_cargas": 627,
+    "total_litros": 29080.18,
+    "total_monto": 59858583.0,
+    "promedio_litros_vehiculo": 660.91,
+    "promedio_monto_vehiculo": 1360422.0
   },
   "vehicles": {
     "JJWL-60-1": {
@@ -10539,18 +10573,18 @@
     },
     "LKRJ-38-2": {
       "patente": "LKRJ-38-2",
-      "total_litros": 882.98,
-      "total_monto": 1242959.0,
-      "num_cargas": 20,
-      "promedio_litros_carga": 44.15,
-      "promedio_monto_carga": 62148.0,
-      "precio_unitario_promedio": 1420.8,
+      "total_litros": 934.85,
+      "total_monto": 1323611.0,
+      "num_cargas": 21,
+      "promedio_litros_carga": 44.52,
+      "promedio_monto_carga": 63029.0,
+      "precio_unitario_promedio": 1427.1,
       "departamento": "CASA MATRIZ",
       "conductor": "22222222-2",
-      "km_recorridos": 10171.0,
-      "rendimiento_km_litro": 11.52,
+      "km_recorridos": 10896.0,
+      "rendimiento_km_litro": 11.66,
       "estaciones_frecuentes": {
-        "'000000000000000": 19,
+        "'000000000000000": 20,
         "'026209260956004": 1
       }
     },
@@ -11057,18 +11091,18 @@
     },
     "TDTP-94-9": {
       "patente": "TDTP-94-9",
-      "total_litros": 241.03,
-      "total_monto": 333217.0,
-      "num_cargas": 5,
-      "promedio_litros_carga": 48.21,
-      "promedio_monto_carga": 66643.0,
-      "precio_unitario_promedio": 1397.0,
+      "total_litros": 290.44,
+      "total_monto": 407229.0,
+      "num_cargas": 6,
+      "promedio_litros_carga": 48.41,
+      "promedio_monto_carga": 67872.0,
+      "precio_unitario_promedio": 1413.8,
       "departamento": "CASA MATRIZ",
       "conductor": "15138882-5",
-      "km_recorridos": 73156.0,
-      "rendimiento_km_litro": 303.51,
+      "km_recorridos": 73523.0,
+      "rendimiento_km_litro": 253.14,
       "estaciones_frecuentes": {
-        "'000000000000000": 5
+        "'000000000000000": 6
       }
     },
     "TJVR-48-1": {
@@ -11221,10 +11255,10 @@
   "departments": [
     {
       "departamento": "CASA MATRIZ",
-      "total_litros": 28978.9,
-      "total_monto": 38922667.0,
+      "total_litros": 29080.18,
+      "total_monto": 39077331.0,
       "num_vehiculos": 44,
-      "num_cargas": 613
+      "num_cargas": 615
     }
   ],
   "daily_trend": [
@@ -11610,6 +11644,12 @@
       "fecha": "2026-05-21",
       "litros": 102.41,
       "monto": 156374.0,
+      "cargas": 2
+    },
+    {
+      "fecha": "2026-05-22",
+      "litros": 101.28,
+      "monto": 154664.0,
       "cargas": 2
     }
   ],
