@@ -1,6 +1,6 @@
 {
   "metadata": {
-    "generado": "2026-05-25T23:14:04.250738",
+    "generado": "2026-05-26T23:18:48.229530",
     "archivo_fuente": "acumulado_historico",
     "total_registros": 635
   },
@@ -10664,7 +10664,7 @@
   ],
   "summary": {
     "periodo": "Marzo - Mayo 2026",
-    "fecha_generacion": "25/05/2026 23:14",
+    "fecha_generacion": "26/05/2026 23:18",
     "total_vehiculos": 44,
     "total_cargas": 635,
     "total_litros": 29472.22,
